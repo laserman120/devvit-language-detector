@@ -1,0 +1,21 @@
+{
+  "name": "language-detector",
+  "blocks": {
+    "entry": "src/main.ts",
+    "triggers": [
+      "onPostSubmit",
+      "onCommentSubmit",
+      "onPostUpdate",
+      "onCommentUpdate",
+      "onAppInstall",
+      "onAppUpgrade"
+    ]
+  },
+  "permissions": {
+    "reddit": true,
+    "redis": true
+  },
+  "dev": {
+    "subreddit": "language_detector_dev"
+  }
+}

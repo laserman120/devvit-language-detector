@@ -1,0 +1,88 @@
+const languageOptions = [
+    { label: 'English', value: 'eng' },
+    { label: 'Mandarin Chinese', value: 'cmn' },
+    { label: 'Hindi', value: 'hin' },
+    { label: 'Spanish', value: 'spa' },
+    { label: 'French', value: 'fra' },
+    { label: 'Arabic', value: 'arb' },
+    { label: 'Bengali', value: 'ben' },
+    { label: 'Russian', value: 'rus' },
+    { label: 'Portuguese', value: 'por' },
+    { label: 'Urdu', value: 'urd' },
+    { label: 'Indonesian', value: 'ind' },
+    { label: 'German', value: 'deu' },
+    { label: 'Japanese', value: 'jpn' },
+    { label: 'Marathi', value: 'mar' },
+    { label: 'Telugu', value: 'tel' },
+    { label: 'Turkish', value: 'tur' },
+    { label: 'Tamil', value: 'tam' },
+    { label: 'Vietnamese', value: 'vie' },
+    { label: 'Tagalog', value: 'tgl' },
+    { label: 'Korean', value: 'kor' },
+    { label: 'Persian', value: 'pes' },
+    { label: 'Polish', value: 'pol' },
+    { label: 'Italian', value: 'ita' },
+    { label: 'Dutch', value: 'nld' },
+    { label: 'Romanian', value: 'ron' },
+    { label: 'Greek', value: 'ell' },
+    { label: 'Czech', value: 'ces' },
+    { label: 'Swedish', value: 'swe' },
+    { label: 'Hungarian', value: 'hun' },
+    { label: 'Finnish', value: 'fin' }
+];
+
+export const languageDetectionGroup = {
+    type: 'group' as const,
+    label: 'Language Detection',
+    helpText: 'Configure automatic actions for content in non-permitted languages.',
+    fields: [
+        {
+            type: 'select' as const,
+            name: 'ALLOWED_LANGUAGES',
+            label: 'Allowed Languages',
+            options: languageOptions,
+            multiSelect: true,
+            defaultValue: ['eng'],
+            scope: 'installation' as const,
+            helpText: 'Select the languages that are permitted.',
+        },
+        {
+            type: 'select' as const,
+            name: 'ACTION_ON_UNSUPPORTED',
+            label: 'Action',
+            options: [
+                { label: 'Report', value: 'report' },
+                { label: 'Filter', value: 'filter' },
+                { label: 'Remove', value: 'remove' }
+            ],
+            defaultValue: ['report'],
+            multiSelect: false,
+            scope: 'installation' as const,
+            helpText: 'Select the action to take when an unsupported language is detected.',
+        },
+        {
+            type: 'string' as const,
+            name: 'ACTION_REASON',
+            label: 'Report/Removal Reason',
+            defaultValue: 'Language not allowed: {{LangName}}',
+            scope: 'installation' as const,
+            helpText: 'The reason logged for the report or removal.',
+        },
+        {
+            type: 'boolean' as const,
+            name: 'NOTIFY_AUTHOR',
+            label: 'Notify of Removal',
+            defaultValue: true,
+            scope: 'installation' as const,
+            helpText: 'Notify the Author by creating a comment below the original post/comment (Only applies if Action is set to Filter or Remove).',
+        },
+        {
+            type: 'paragraph' as const,
+            name: 'REMOVAL_MESSAGE',
+            label: 'Removal Notification Message',
+            defaultValue: 'Hello {{UserName}}, your {{type}} has been removed as it broke our rules.\nOnly {{type}}s in english are allowed on r/{{subredditName}}.\n\n*This action was performed automatically if you believe this is an error please reach out through our [modmail](https://www.reddit.com/message/compose?to=r/{{subredditName}}).*',
+            scope: 'installation' as const,
+            helpText: 'The message sent to the user when their content is filtered or removed.',
+        }
+    ]
+};
