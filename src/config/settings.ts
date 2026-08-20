@@ -89,13 +89,13 @@ export const languageDetectionGroup = {
             name: 'STRICTNESS',
             label: 'Detection Strictness',
             options: [
-                { label: 'Strict (Only check top result)', value: 'strict' },
-                { label: 'Lenient (Check top 3 results)', value: 'lenient' }
+                { label: 'Strict', value: 'strict' },
+                { label: 'Lenient', value: 'lenient' }
             ],
-            defaultValue: ['strict'],
+            defaultValue: ['lenient'],
             multiSelect: false,
             scope: 'installation' as const,
-            helpText: 'Lenient allows the content if the 2nd or 3rd most likely language is permitted.',
+            helpText: 'Lenient (Default) tries to avoid false positives. Strict is more likely to create false positives but will more reliably catch non-permitted languages.',
         },
     ]
 };

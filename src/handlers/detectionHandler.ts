@@ -10,17 +10,30 @@ const supportedLanguages = [
     'pes', 'pol', 'ita', 'nld', 'ron', 'ell', 'ces', 'swe', 'hun', 'fin'
 ];
 
+// Detection Settings:
+
+const StopwordDensityThresholdLenient = 0.40; // 40% of words must be valid stopwords to pass the check
+const StopwordDensityThresholdStrict = 0.60; // 60% of words must be valid stopwords to pass the check
+const MinTextLengthForDetection = 30; // Minimum text length for language detection
+const MinConfidenceStrict = 0.1; // Minimum confidence for strict mode ( Low confidence to allow even unsure cases to be caught, risking false positives )
+const MinConfidenceLenient = 0.8; // Minimum confidence for lenient mode
+
 
 export async function handleDetection(itemId: string, context: TriggerContext, text: string) {
     // Redis Deduplication Check
     const redisKey = `processed:${itemId}`;
     const alreadyProcessed = await context.redis.get(redisKey);
     
-    if (alreadyProcessed) {
+    if (alreadyProcessed) 
+    {
         console.log(`Event for ${itemId} was already processed recently. Skipping.`);
         return;
     }
 
+    await context.redis.set(redisKey, 'true');
+    await context.redis.expire(redisKey, 60);
+
+    const strictnessSetting = await context.settings.get<string[]>('STRICTNESS') ?? ['strict'];
     const allowedLanguages = await context.settings.get<string[]>('ALLOWED_LANGUAGES') || ['eng'];
 
     let langCode = "und";
@@ -29,34 +42,42 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
     const words = text.toLowerCase().replace(/[^\w\s\']/gi, '').split(/\s+/).filter(w => w.length > 0);
     const totalWords = words.length;
 
-    // Add common internet slang and abbreviations to the allowed words set
+    // Add global whitelisted words to the allowed set
     const allowedWords = new Set<string>(whitelistedWords.global || []);
 
     for (const code3 of allowedLanguages) {
-        if (whitelistedWords[code3]) {
+        // Add whitelisted words for the specific language code
+        if (whitelistedWords[code3]) 
+        {
             whitelistedWords[code3].forEach(w => allowedWords.add(w));
         }
 
         const langData = iso6393.find(l => l.iso6393 === code3);
-        if (langData?.iso6391 && (stopwords as any)[langData.iso6391]) {
+        if (langData?.iso6391 && (stopwords as any)[langData.iso6391]) 
+        {
             (stopwords as any)[langData.iso6391].forEach((w: string) => allowedWords.add(w));
         }
     }
 
     let validWordCount = 0;
     for (const word of words) {
-        if (allowedWords.has(word)) validWordCount++;
+        if (allowedWords.has(word)){
+            validWordCount++;
+            console.log(`Item ${itemId}: Word "${word}" is a valid stopword`);
+        } 
     }
 
-    if (totalWords > 0 && (validWordCount / totalWords) >= 0.25) {
-        console.log(`Item ${itemId} passed stopword Check.`);
+    const StopwordDensityThreshold = strictnessSetting[0] === 'lenient' ? StopwordDensityThresholdLenient : StopwordDensityThresholdStrict;
+
+    if (totalWords > 0 && (validWordCount / totalWords) >= StopwordDensityThreshold) {
+        console.log(`Item ${itemId} passed stopword Check. [${validWordCount}/${totalWords}] valid stopwords.`);
         return;
     }
 
     // Main Detection using Franc
-    if (text.trim().length >= 30) {
-        const strictnessSetting = await context.settings.get<string[]>('STRICTNESS') ?? ['strict'];
-        const minConfidence = strictnessSetting[0] === 'lenient' ? 0.8 : 0.1;
+    if (text.trim().length >= MinTextLengthForDetection) {
+        
+        const minConfidence = strictnessSetting[0] === 'lenient' ? MinConfidenceLenient : MinConfidenceStrict;
         
 
         const results = francAll(text, { only: supportedLanguages });
@@ -76,15 +97,20 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
         if (isAllowed) {
             console.log(`Item ${itemId} passed language check. (Top code: ${topCode}, Score: ${topScore})`);
             return;
-        } else {
+        } 
+        else
+        {
             console.log(`Item ${itemId} failed language check. (Top code: ${topCode}, Score: ${topScore})`);
         }
 
 
         
         langCode = topCode;
-    } else {
-        // Fallback for short content (TODO)
+    } 
+    else 
+    {
+        console.log(`Item ${itemId} is under 30 characters and unverified. Skipping to prevent false positives.`);
+        return;
     }
 
     if(langCode === "und"){
@@ -103,19 +129,16 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
     {
         // It's a comment
         item = await context.reddit.getCommentById(itemId);
-    } else {
+    } 
+    else 
+    {
         console.log(`Item ${itemId} is neither a post nor a comment. Skipping.`);
         return;
     }
 
-    // Check for Author data
-    const authorName = item.authorName;
-    if(authorName === 'language-detector') {
-        return; 
-    }
-
     // Check if already removed.
-    if(item.isRemoved()){
+    if(item.isRemoved())
+    {
         console.log(`Item ${itemId} is already removed. Skipping.`);
         return;
     }
@@ -129,22 +152,24 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
     const rawReason = await context.settings.get<string>('ACTION_REASON') ?? 'Language not allowed: {{LangName}}';
     const reason = rawReason.replace('{{LangName}}', langName);
 
-    if (action === 'report') {
+    if (action === 'report') 
+    {
         await context.reddit.report(item, { reason: reason });
         console.log(`Sent report for item ${item.id} with language code: ${langCode}`);
-    } else if (action === 'filter') {
+    } 
+    else if (action === 'filter') 
+    {
         await context.reddit.filter(item.id, { reason: reason });
         console.log(`Filtered item ${item.id} with language code: ${langCode}`);
         await sendRemovalNotification(context, item);
-    } else if (action === 'remove') {
+    } 
+    else if (action === 'remove') 
+    {
         await context.reddit.remove(item.id, false);
         await context.reddit.addRemovalNote({ itemIds: [item.id], reasonId: "", modNote: reason });
         console.log(`Removed item ${item.id} with language code: ${langCode}`);
         await sendRemovalNotification(context, item);
     }
-
-    await context.redis.set(redisKey, 'true');
-    await context.redis.expire(redisKey, 60);
 }
 
 async function sendRemovalNotification(context: TriggerContext, item: Post | Comment) {

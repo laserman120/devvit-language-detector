@@ -34,8 +34,13 @@ An easy to use Moderation App to automatically report, filter or remove posts an
 
 ## How the App works:
 
-The app primarily relies on [franc-min](https://github.com/wooorm/franc) to detect different languages.
-For reliable results longer text is required, this means the app will disregard very short comments.
+Each post/comment is first scanned for common [Stop-Words](https://github.com/stopwords-iso/stopwords-iso) in the allowed languages.
+If enough stop words are found the system will directly skip further detection.
+
+When the stop word check fails it will then run the text through [franc-min](https://github.com/wooorm/franc).
+As Franc is very unreliable on very short text, it will only run if enough text is available.
+
+This means that very short comments will be skipped by the system to avoid false positives.
 
 
 ## Changelog:
