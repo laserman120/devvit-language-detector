@@ -83,6 +83,19 @@ export const languageDetectionGroup = {
             defaultValue: 'Hello {{UserName}}, your {{type}} has been removed as it broke our rules.\nOnly {{type}}s in english are allowed on r/{{subredditName}}.\n\n*This action was performed automatically if you believe this is an error please reach out through our [modmail](https://www.reddit.com/message/compose?to=r/{{subredditName}}).*',
             scope: 'installation' as const,
             helpText: 'The message sent to the user when their content is filtered or removed.',
-        }
+        },
+        {
+            type: 'select' as const,
+            name: 'STRICTNESS',
+            label: 'Detection Strictness',
+            options: [
+                { label: 'Strict (Only check top result)', value: 'strict' },
+                { label: 'Lenient (Check top 3 results)', value: 'lenient' }
+            ],
+            defaultValue: ['strict'],
+            multiSelect: false,
+            scope: 'installation' as const,
+            helpText: 'Lenient allows the content if the 2nd or 3rd most likely language is permitted.',
+        },
     ]
 };

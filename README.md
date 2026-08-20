@@ -39,5 +39,5 @@ For reliable results longer text is required, this means the app will disregard 
 
 
 ## Changelog:
-- 0.00.04
+- 0.00.06
     - Initial Release

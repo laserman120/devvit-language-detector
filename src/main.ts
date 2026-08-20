@@ -1,5 +1,4 @@
 import { Devvit } from "@devvit/public-api";
-import { detectLanguage } from "./helpers/languageDetection.js";
 import { handlePost } from "./handlers/postHandler.js";
 import { handleComment } from "./handlers/commentHandler.js";
 import { languageDetectionGroup } from "./config/settings.js";

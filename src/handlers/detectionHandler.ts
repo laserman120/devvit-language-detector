@@ -1,8 +1,17 @@
-import ISO6391 from 'iso-639-1';
+import { francAll } from 'franc-min';
 import { iso6393 } from 'iso-639-3';
 import { Devvit, TriggerContext, Post, Comment } from "@devvit/public-api";
+import { stopwords } from '../helpers/stopwords-iso.js';
+import { whitelistedWords } from '../helpers/word-whitelist.js';
 
-export async function handleDetection(itemId: string, context: TriggerContext, langCode: string) {
+const supportedLanguages = [
+    'eng', 'cmn', 'hin', 'spa', 'fra', 'arb', 'ben', 'rus', 'por', 'urd', 
+    'ind', 'deu', 'jpn', 'mar', 'tel', 'tur', 'tam', 'vie', 'tgl', 'kor', 
+    'pes', 'pol', 'ita', 'nld', 'ron', 'ell', 'ces', 'swe', 'hun', 'fin'
+];
+
+
+export async function handleDetection(itemId: string, context: TriggerContext, text: string) {
     // Redis Deduplication Check
     const redisKey = `processed:${itemId}`;
     const alreadyProcessed = await context.redis.get(redisKey);
@@ -12,18 +21,81 @@ export async function handleDetection(itemId: string, context: TriggerContext, l
         return;
     }
 
-    // Add check if language is allowed:
     const allowedLanguages = await context.settings.get<string[]>('ALLOWED_LANGUAGES') || ['eng'];
-    
-    if (allowedLanguages.includes(langCode) || langCode === 'und') {
-        console.log(`Item ${itemId} is in an allowed language (${langCode}), skipping.`);
+
+    let langCode = "und";
+
+    // Quick Stopword Check
+    const words = text.toLowerCase().replace(/[^\w\s\']/gi, '').split(/\s+/).filter(w => w.length > 0);
+    const totalWords = words.length;
+
+    // Add common internet slang and abbreviations to the allowed words set
+    const allowedWords = new Set<string>(whitelistedWords.global || []);
+
+    for (const code3 of allowedLanguages) {
+        if (whitelistedWords[code3]) {
+            whitelistedWords[code3].forEach(w => allowedWords.add(w));
+        }
+
+        const langData = iso6393.find(l => l.iso6393 === code3);
+        if (langData?.iso6391 && (stopwords as any)[langData.iso6391]) {
+            (stopwords as any)[langData.iso6391].forEach((w: string) => allowedWords.add(w));
+        }
+    }
+
+    let validWordCount = 0;
+    for (const word of words) {
+        if (allowedWords.has(word)) validWordCount++;
+    }
+
+    if (totalWords > 0 && (validWordCount / totalWords) >= 0.25) {
+        console.log(`Item ${itemId} passed stopword Check.`);
+        return;
+    }
+
+    // Main Detection using Franc
+    if (text.trim().length >= 30) {
+        const strictnessSetting = await context.settings.get<string[]>('STRICTNESS') ?? ['strict'];
+        const minConfidence = strictnessSetting[0] === 'lenient' ? 0.8 : 0.1;
+        
+
+        const results = francAll(text, { only: supportedLanguages });
+        const topCode = results[0][0];
+        const topScore = results[0][1] as number;
+
+        if (topCode === 'und' || topScore < minConfidence) {
+            console.log(`Item ${itemId} skipped: Undetermined or below minimum confidence (${topScore}).`);
+            return;
+        }
+
+        const numToCheck = strictnessSetting[0] === 'lenient' ? 3 : 1;
+        const topResultsToCheck = results.slice(0, numToCheck);
+
+        const isAllowed = topResultsToCheck.some(([code]) => allowedLanguages.includes(code as string));
+
+        if (isAllowed) {
+            console.log(`Item ${itemId} passed language check. (Top code: ${topCode}, Score: ${topScore})`);
+            return;
+        } else {
+            console.log(`Item ${itemId} failed language check. (Top code: ${topCode}, Score: ${topScore})`);
+        }
+
+
+        
+        langCode = topCode;
+    } else {
+        // Fallback for short content (TODO)
+    }
+
+    if(langCode === "und"){
+        console.log(`Item ${itemId} language could not be detected. Skipping.`);
         return;
     }
 
     let item;
 
     if(itemId.startsWith("t3_")) 
-        {
+    {
         // It's a post
         item = await context.reddit.getPostById(itemId);
     } 
