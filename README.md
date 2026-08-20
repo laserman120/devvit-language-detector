@@ -1,47 +1,46 @@
 # Language Detector
 
-An easy to use Moderation App to automatically report, filter or remove posts and comments written in various languages.
+An easy-to-use moderation app to automatically report, filter, or remove posts and comments written in unsupported languages.
 
 ## Setup and installation:
 
 ### Installing the app in your subreddit:
-- To add an App to a subreddit you need to be a moderator with sufficient permissions.
-- You can then add the app by going to the App Page and pressing "Add to community"
-- This will install it in the selected Subreddit and will open the App settings shortly after.
+- To add the app to a subreddit, you must be a moderator with sufficient permissions.
+- Go to the App Page and press "Add to community".
+- This installs it in the selected subreddit and opens the app settings shortly after.
 
 ### Basic Configuration:
 
-- To get started first select any **allowed** languages for your community.
-    - If you notice false positives, for example the system might incorrectly confuse German and Dutch, it is recommended to select both options.
+- First, select all **allowed** languages for your community.
+    - If you notice false positives (e.g., the system incorrectly confuses German and Dutch), we recommend allowing both languages.
 
-- Next select what action the app should take if it encounters a disallowed language. You can select between:
-    - Report (This will Report the post/comment)
-    - Filter (This will remove the post/comment and put it into the modqueue for review)
-    - Remove (This will directly remove the post/comment)
+- Next, select the action the app should take if it encounters a disallowed language. You can select:
+    - Report (Reports the post/comment)
+    - Filter (Removes the post/comment and sends it to the modqueue for review)
+    - Remove (Directly removes the post/comment)
 
 ### Advanced Configuration:
 
-- You can also customize or adjust the Report/Removal reason.
-    - It is recommended to keep {{LangName}}, this will show you which language was detected.
+- You can customize the report/removal reason.
+    - We recommend keeping `{{LangName}}`, as this displays which language was detected.
 
-- If you use Filter or Remove you can enable a removal notification.
-    - This will create a comment below the removed post/comment informing the author of the removal.
+- If you use Filter or Remove, you can enable a removal notification.
+    - This replies to the removed post/comment, informing the author of the removal.
     - The removal message can be adjusted to fit your subreddit.
-    - You can use these wildcards to further customize the message:
-        - {{type}} - This is either post/comment
-        - {{subredditName}} - the name of your subreddit without r/
-        - {{authorName}} - the name of the author
+    - You can use these wildcards to customize the message:
+        - `{{type}}` - Displays either "post" or "comment"
+        - `{{subredditName}}` - The name of your subreddit without the "r/" prefix
+        - `{{authorName}}` - The username of the author
 
-## How the App works:
+## How the app works:
 
-Each post/comment is first scanned for common [Stop-Words](https://github.com/stopwords-iso/stopwords-iso) in the allowed languages.
-If enough stop words are found the system will directly skip further detection.
+Each post/comment is first scanned for common [stopwords](https://github.com/stopwords-iso/stopwords-iso) in the allowed languages. If enough stopwords are found, the system skips further detection.
 
-When the stop word check fails it will then run the text through [franc-min](https://github.com/wooorm/franc).
-As Franc is very unreliable on very short text, it will only run if enough text is available.
+When the stopword check fails, it runs the text through [franc-min](https://github.com/wooorm/franc). Because Franc is unreliable on very short text, this only runs if sufficient text is available.
 
-This means that very short comments will be skipped by the system to avoid false positives.
+If the text is too short, the system falls back on basic script analysis. It checks if the text contains a high density of characters belonging to unsupported alphabets (e.g., Cyrillic, Han).
 
+**Note: While automated language detection cannot be 100% precise, this app runs entirely offline and requires no external API keys.**
 
 ## Changelog:
 - 0.00.06

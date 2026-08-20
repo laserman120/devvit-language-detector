@@ -17,6 +17,8 @@ const StopwordDensityThresholdStrict = 0.60; // 60% of words must be valid stopw
 const MinTextLengthForDetection = 30; // Minimum text length for language detection
 const MinConfidenceStrict = 0.1; // Minimum confidence for strict mode ( Low confidence to allow even unsure cases to be caught, risking false positives )
 const MinConfidenceLenient = 0.8; // Minimum confidence for lenient mode
+const MinScriptMatchPercentageLenient = 0.5; // Minimum percentage of characters matching a script for short text detection
+const MinScriptMatchPercentageStrict = 0.7; // Minimum percentage of characters matching a script for short text detection
 
 
 export async function handleDetection(itemId: string, context: TriggerContext, text: string) {
@@ -109,8 +111,47 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
     } 
     else 
     {
-        console.log(`Item ${itemId} is under 30 characters and unverified. Skipping to prevent false positives.`);
-        return;
+        // If the text is too short, we can attempt to detect the script of the characters to infer the language.
+        const textLetters = [...text].filter(char => /\p{Letter}/u.test(char));
+        const totalLetters = textLetters.length;
+
+        if (totalLetters > 0) {
+            const scriptMappings = [
+                { regex: /\p{Script=Cyrillic}/u, code: 'rus' }, // Russian / Cyrillic
+                { regex: /\p{Script=Han}/u, code: 'cmn' }, // Chinese
+                { regex: /\p{Script=Hiragana}|\p{Script=Katakana}/u, code: 'jpn' }, // Japanese
+                { regex: /\p{Script=Hangul}/u, code: 'kor' }, // Korean
+                { regex: /\p{Script=Arabic}/u, code: 'arb' }, // Arabic
+                { regex: /\p{Script=Devanagari}/u, code: 'hin' } // Hindi / Devanagari
+            ];
+
+            let scriptFound = false;
+
+            for (const script of scriptMappings) {
+                const matchCount = textLetters.filter(char => script.regex.test(char)).length;
+                
+                const minScriptMatchPercentage = strictnessSetting[0] === 'lenient' ? MinScriptMatchPercentageLenient : MinScriptMatchPercentageStrict;
+                if (matchCount / totalLetters > minScriptMatchPercentage) {
+                    langCode = script.code;
+                    scriptFound = true;
+                    console.log(`Item ${itemId} is short but detected as ${script.code} via script analysis.`);
+                    break;
+                }
+            }
+
+            if (!scriptFound) {
+                console.log(`Item ${itemId} is under 30 characters (Latin/mixed) and unverified. Skipping.`);
+                return;
+            }
+
+            if (allowedLanguages.includes(langCode)) {
+                console.log(`Item ${itemId} passed short script check (${langCode}).`);
+                return;
+            }
+        } else {
+            console.log(`Item ${itemId} contains no recognizable letters. Skipping.`);
+            return;
+        }
     }
 
     if(langCode === "und"){
