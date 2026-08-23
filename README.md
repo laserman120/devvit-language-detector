@@ -12,9 +12,10 @@ An easy-to-use moderation app to automatically report, filter, or remove posts a
 ### Basic Configuration:
 
 - First, select all **allowed** languages for your community.
-    - If you notice false positives (e.g., the system incorrectly confuses German and Dutch), we recommend allowing both languages.
+    - If you notice a lot of false positives (e.g., the system incorrectly confuses German and Dutch), we recommend allowing both languages.
 
-- Next, select the action the app should take if it encounters a disallowed language. You can select:
+- Next, select the action the app should take if it encounters a disallowed language in a post or comment. You can select:
+    - None (Do not scan for language)
     - Report (Reports the post/comment)
     - Filter (Removes the post/comment and sends it to the modqueue for review)
     - Remove (Directly removes the post/comment)
@@ -38,10 +39,12 @@ Each post/comment is first scanned for common [stopwords](https://github.com/sto
 
 When the stopword check fails, it runs the text through [franc-min](https://github.com/wooorm/franc). Because Franc is unreliable on very short text, this only runs if sufficient text is available.
 
-If the text is too short, the system falls back on basic script analysis. It checks if the text contains a high density of characters belonging to unsupported alphabets (e.g., Cyrillic, Han).
+If the text is too short, the system falls back on basic script analysis. It checks if the text contains a high density of characters belonging to unsupported alphabets (e.g., Cyrillic, Han). 
 
-**Note: While automated language detection cannot be 100% precise, this app runs entirely offline and requires no external API keys.**
+If the script is allowed (like Latin in english) and cannot be immediately blocked, it performs one final, highly strict stopword density check across all languages. This allows the system to confidently identify and moderate even very short phrases before giving up.
+
+**Note: While automated language detection cannot be 100% precise, this app requires no external API keys or additional costs.**
 
 ## Changelog:
-- 0.00.06
+- 0.00.07
     - Initial Release

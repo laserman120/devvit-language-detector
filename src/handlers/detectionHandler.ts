@@ -12,8 +12,9 @@ const supportedLanguages = [
 
 // Detection Settings:
 
-const StopwordDensityThresholdLenient = 0.40; // 40% of words must be valid stopwords to pass the check
-const StopwordDensityThresholdStrict = 0.60; // 60% of words must be valid stopwords to pass the check
+const StopwordDensityThresholdLenient = 0.40; // % of words must be valid stopwords to pass the check
+const StopwordDensityThresholdStrict = 0.60; // % of words must be valid stopwords to pass the check
+const StopwordDensityThresholdFallback = 0.75; // % of words must be valid stopwords to pass the check for short texts
 const MinTextLengthForDetection = 30; // Minimum text length for language detection
 const MinConfidenceStrict = 0.1; // Minimum confidence for strict mode ( Low confidence to allow even unsure cases to be caught, risking false positives )
 const MinConfidenceLenient = 0.8; // Minimum confidence for lenient mode
@@ -22,13 +23,19 @@ const MinScriptMatchPercentageStrict = 0.7; // Minimum percentage of characters 
 
 
 export async function handleDetection(itemId: string, context: TriggerContext, text: string) {
+    const trace: string[] = [];
+    const finish = (msg: string) => {
+        trace.push(msg);
+        console.log(`[${itemId}] ${trace.join(' -> ')}`);
+    };
+
     // Redis Deduplication Check
     const redisKey = `processed:${itemId}`;
     const alreadyProcessed = await context.redis.get(redisKey);
     
     if (alreadyProcessed) 
     {
-        console.log(`Event for ${itemId} was already processed recently. Skipping.`);
+        return finish('Already processed recently');
         return;
     }
 
@@ -41,7 +48,7 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
     let langCode = "und";
 
     // Quick Stopword Check
-    const words = text.toLowerCase().replace(/[^\w\s\']/gi, '').split(/\s+/).filter(w => w.length > 0);
+    const words = text.toLowerCase().replace(/[^\p{Letter}\p{Number}\s']/gu, '').split(/\s+/).filter(w => w.length > 0);
     const totalWords = words.length;
 
     // Add global whitelisted words to the allowed set
@@ -65,20 +72,21 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
     for (const word of words) {
         if (allowedWords.has(word)){
             validWordCount++;
-            console.log(`Item ${itemId}: Word "${word}" is a valid stopword`);
         } 
     }
 
     const StopwordDensityThreshold = strictnessSetting[0] === 'lenient' ? StopwordDensityThresholdLenient : StopwordDensityThresholdStrict;
 
     if (totalWords > 0 && (validWordCount / totalWords) >= StopwordDensityThreshold) {
-        console.log(`Item ${itemId} passed stopword Check. [${validWordCount}/${totalWords}] valid stopwords.`);
-        return;
+        return finish(`Passed Quick Stopwords [${validWordCount}/${totalWords}]`);
     }
+
+    trace.push(`Stopwords [${validWordCount}/${totalWords}]`);
 
     // Main Detection using Franc
     if (text.trim().length >= MinTextLengthForDetection) {
-        
+        trace.push('Mode: Franc');
+
         const minConfidence = strictnessSetting[0] === 'lenient' ? MinConfidenceLenient : MinConfidenceStrict;
         
 
@@ -87,8 +95,7 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
         const topScore = results[0][1] as number;
 
         if (topCode === 'und' || topScore < minConfidence) {
-            console.log(`Item ${itemId} skipped: Undetermined or below minimum confidence (${topScore}).`);
-            return;
+            return finish(`Skipped: Franc Undetermined or < ${minConfidence} (Score: ${topScore})`);
         }
 
         const numToCheck = strictnessSetting[0] === 'lenient' ? 3 : 1;
@@ -97,12 +104,11 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
         const isAllowed = topResultsToCheck.some(([code]) => allowedLanguages.includes(code as string));
 
         if (isAllowed) {
-            console.log(`Item ${itemId} passed language check. (Top code: ${topCode}, Score: ${topScore})`);
-            return;
+            return finish(`Passed: Franc matched allowed lang in top ${numToCheck} (Top code: ${topCode}, Score: ${topScore})`);
         } 
         else
         {
-            console.log(`Item ${itemId} failed language check. (Top code: ${topCode}, Score: ${topScore})`);
+            trace.push(`Franc rejected: ${topCode} (${topScore})`);
         }
 
 
@@ -134,61 +140,83 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
                 if (matchCount / totalLetters > minScriptMatchPercentage) {
                     langCode = script.code;
                     scriptFound = true;
-                    console.log(`Item ${itemId} is short but detected as ${script.code} via script analysis.`);
+                    trace.push(`Mode: Script Analysis -> Detected ${script.code}`);
                     break;
                 }
             }
-
+            // if no script was found, we attempt to use stopword density for short texts as a fallback.
             if (!scriptFound) {
-                console.log(`Item ${itemId} is under 30 characters (Latin/mixed) and unverified. Skipping.`);
-                return;
+                let bestLang = 'und';
+                let bestMatch = 0;
+
+                for (const code3 of supportedLanguages) {
+                    let matchCount = 0;
+                    const langData = iso6393.find(l => l.iso6393 === code3);
+                    const stopwordList = langData?.iso6391 ? (stopwords as any)[langData.iso6391] : [];
+                    const whitelist = whitelistedWords[code3] || [];
+                    
+                    const langWords = new Set([...(stopwordList || []), ...whitelist]);
+                    
+                    for (const word of words) {
+                        if (langWords.has(word)) matchCount++;
+                    }
+
+                    if (matchCount > bestMatch) {
+                        bestMatch = matchCount;
+                        bestLang = code3;
+                    }
+                }
+
+                if (totalWords > 0 && (bestMatch / totalWords) >= StopwordDensityThresholdFallback) {
+                    langCode = bestLang;
+                    trace.push(`Mode: Short Stopwords -> Detected ${langCode} (${bestMatch}/${totalWords})`);
+                } else {
+                    return finish(`Skipped: Under 30 chars (Latin/mixed) and unverified`);
+                }
             }
 
             if (allowedLanguages.includes(langCode)) {
-                console.log(`Item ${itemId} passed short script check (${langCode}).`);
-                return;
+                return finish(`Passed: Short text allowed (${langCode})`);
             }
+            trace.push(`Short Text rejected: ${langCode}`);
         } else {
-            console.log(`Item ${itemId} contains no recognizable letters. Skipping.`);
-            return;
+            return finish(`Skipped: No recognizable letters`);
         }
     }
 
     if(langCode === "und"){
-        console.log(`Item ${itemId} language could not be detected. Skipping.`);
-        return;
+        return finish(`Skipped: Language could not be determined`);
     }
 
     let item;
-
+    let actionSetting;
     if(itemId.startsWith("t3_")) 
     {
         // It's a post
         item = await context.reddit.getPostById(itemId);
+        actionSetting = await context.settings.get<string[]>('ACTION_ON_UNSUPPORTED_POST') ?? ['report'];
     } 
     else if(itemId.startsWith("t1_")) 
     {
         // It's a comment
         item = await context.reddit.getCommentById(itemId);
+        actionSetting = await context.settings.get<string[]>('ACTION_ON_UNSUPPORTED_COMMENT') ?? ['report'];
     } 
     else 
     {
-        console.log(`Item ${itemId} is neither a post nor a comment. Skipping.`);
-        return;
+        return finish(`Skipped: Neither post nor comment`);
     }
 
     // Check if already removed.
     if(item.isRemoved())
     {
-        console.log(`Item ${itemId} is already removed. Skipping.`);
-        return;
+        return finish(`Skipped: Already removed`);
     }
 
     // Take action
     const langData = iso6393.find(l => l.iso6393 === langCode);
     const langName = langData?.name || langCode;
 
-    const actionSetting = await context.settings.get<string[]>('ACTION_ON_UNSUPPORTED') ?? ['report'];
     const action = actionSetting[0];
     const rawReason = await context.settings.get<string>('ACTION_REASON') ?? 'Language not allowed: {{LangName}}';
     const reason = rawReason.replace('{{LangName}}', langName);
@@ -196,32 +224,43 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
     if (action === 'report') 
     {
         await context.reddit.report(item, { reason: reason });
-        console.log(`Sent report for item ${item.id} with language code: ${langCode}`);
+        finish(`Action: Reported (${langCode})`);
     } 
     else if (action === 'filter') 
     {
         await context.reddit.filter(item.id, { reason: reason });
-        console.log(`Filtered item ${item.id} with language code: ${langCode}`);
-        await sendRemovalNotification(context, item);
+        finish(`Action: Filtered (${langCode})`);
+        await sendRemovalNotification(context, item, "filter");
     } 
     else if (action === 'remove') 
     {
         await context.reddit.remove(item.id, false);
         await context.reddit.addRemovalNote({ itemIds: [item.id], reasonId: "", modNote: reason });
-        console.log(`Removed item ${item.id} with language code: ${langCode}`);
-        await sendRemovalNotification(context, item);
+        finish(`Action: Removed (${langCode})`);
+        await sendRemovalNotification(context, item, "removal");
     }
 }
 
-async function sendRemovalNotification(context: TriggerContext, item: Post | Comment) {
-    const notifyAuthor = await context.settings.get<boolean>('NOTIFY_AUTHOR');
+async function sendRemovalNotification(context: TriggerContext, item: Post | Comment, type: String) {
+    let notifyAuthor;
+    let rawMessage;
+    if(type === "filter") {
+        notifyAuthor = await context.settings.get<boolean>('NOTIFY_AUTHOR_FILTER');
+        rawMessage = await context.settings.get<string>('FILTER_MESSAGE') ?? '';
+    } else if(type === "removal") {
+        notifyAuthor = await context.settings.get<boolean>('NOTIFY_AUTHOR_REMOVAL');
+        rawMessage = await context.settings.get<string>('REMOVAL_MESSAGE') ?? '';
+    }
+
     if (!notifyAuthor) return;
 
     const authorName = item.authorName;
     const subredditName = item.subredditName;
     const itemType = item.id.startsWith("t3_") ? 'post' : 'comment';
     
-    const rawMessage = await context.settings.get<string>('REMOVAL_MESSAGE') ?? '';
+    if(!rawMessage){
+        return;
+    }
     const message = rawMessage.replace(/{{type}}/g, itemType).replace(/{{subredditName}}/g, subredditName).replace(/{{UserName}}/g, authorName);
 
     const comment = await context.reddit.submitComment({
@@ -229,6 +268,6 @@ async function sendRemovalNotification(context: TriggerContext, item: Post | Com
         text: message,
     });
     await comment.distinguish(true);
-    console.log(`Left comment notification on ${item.id}`);
+    console.log(`[${item.id}] Left comment notification (${type})`);
     
 }
