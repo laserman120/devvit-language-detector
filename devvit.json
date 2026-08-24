@@ -1,5 +1,8 @@
 {
   "name": "language-detector",
+  "marketingAssets": {
+    "icon": "assets/LanguageDetectorIcon.png"
+  },
   "blocks": {
     "entry": "src/main.ts",
     "triggers": [
