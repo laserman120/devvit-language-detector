@@ -33,11 +33,23 @@ An easy-to-use moderation app to automatically report, filter, or remove posts a
         - `{{subredditName}}` - The name of your subreddit without the "r/" prefix
         - `{{authorName}}` - The username of the author
 
+- The App has two detection modes:
+    - Lenient (Recommended) - Tries to avoid false positives but could lead to missed detections.
+    - Strict - More likely to detect uses of disallowed languages but risks additional false positives.
+
+- The Custom Whitelisted Words can be adjusted to decrease false positives.
+    - Any words added to the list will be treated as part of the allowed languages, increasing the chance of correct detection.
+    - It is recommended to add words to this list which are commonly used in your community.
+
 ## How the app works:
 
-Each post/comment is first scanned for common [stopwords](https://github.com/stopwords-iso/stopwords-iso) in the allowed languages. If enough stopwords are found, the system skips further detection.
+Each post/comment is first scanned for common [stopwords](https://github.com/stopwords-iso/stopwords-iso) in the allowed languages. This check also includes the custom whitelist.
+If enough stopwords are found, the system skips further detection.
+*Stopwords are commonly used words such as articles, pronouns and prepositions.*
 
 When the stopword check fails, it runs the text through [franc-min](https://github.com/wooorm/franc). Because Franc is unreliable on very short text, this only runs if sufficient text is available.
+
+Currently anything below 30 characters is considered "too short" for franc-min to handle. This might be adjusted in the future.
 
 If the text is too short, the system falls back on basic script analysis. It checks if the text contains a high density of characters belonging to unsupported alphabets (e.g., Cyrillic, Han). 
 
@@ -45,7 +57,15 @@ If the script is allowed (like Latin in english) and cannot be immediately block
 
 **Note: While automated language detection cannot be 100% precise, this app requires no external API keys or additional costs.**
 
+## Feedback:
+
+By providing feedback on false positives, incorrectly identified languages and similar occurences we can make adjustments to improve the detection in the future.
+If you want to send feedback you can always contact me [here](https://www.reddit.com/message/compose/?to=_GLAD0S_)
+
 ## Changelog:
+- 0.00.12
+    - Added Custom Whitelist setting.
+    - Adjusted internal Whitelist.
 - 0.00.11
     - Updated Word Whitelist to include GIF and IMAGE
 - 0.00.10

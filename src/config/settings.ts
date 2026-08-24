@@ -145,7 +145,15 @@ export const languageDetectionGroup = {
                     return 'Message cannot be empty. If you do not want to notify users, disable the toggle above.';
                 }
             }
-        },
+        }
+    ]
+};
+
+export const languageSettingsGroup = {
+    type: 'group' as const,
+    label: 'Detection Settings',
+    helpText: 'Configure the detection system itself.',
+    fields: [
         {
             type: 'select' as const,
             name: 'STRICTNESS',
@@ -161,6 +169,28 @@ export const languageDetectionGroup = {
             onValidate: ({ value }: { value?: string[] }) => {
                 if (!value || value.length === 0) {
                     return 'You must select a strictness level. Lenient is recommended to avoid false positives.';
+                }
+            }
+        },
+        {
+            type: 'string' as const,
+            name: 'CUSTOM_WHITELIST',
+            label: 'Custom Whitelisted Words (StopWords)',
+            defaultValue: '',
+            scope: 'installation' as const,
+            helpText: 'Add custom words to the allowed languages. Separate words with commas or semicolons (e.g., Forest; Cake; Banana).',
+            onValidate: ({ value }: { value?: string }) => {
+                if (value) {
+                    if (value.length > 1000) {
+                        return 'Custom whitelist is too long. Please keep it under 1000 characters.';
+                    }
+                    const words = value.split(/[,;]+/);
+                    for (const word of words) {
+                        const trimmed = word.trim();
+                        if (trimmed.length > 0 && /\s/.test(trimmed)) {
+                            return `Invalid entry "${trimmed}". Only single words are allowed, no spaces.`;
+                        }
+                    }
                 }
             }
         },

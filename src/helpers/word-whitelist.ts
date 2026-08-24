@@ -3,7 +3,7 @@
 // Individual language words are added to the StopWords list for that specific language.
 
 export const whitelistedWords: Record<string, string[]> = {
-    global: ['lol', 'lmao', 'lmfao', 'wtf', 'omg', 'ok', 'okay', 'yes', 'no', 'idk', 'im', 'ur', 'gg', 'wp', 'ty', 'thx', 'pls', 'plz', 'xd', 'bro', 'bruh','GIF','IMAGE'],
+    global: ['lol', 'lmao', 'lmfao', 'wtf', 'omg', 'ok', 'okay', 'yes', 'no', 'idk', 'im', 'ur', 'gg', 'wp', 'ty', 'thx', 'pls', 'plz', 'xd', 'bro', 'bruh','GIF','IMAGE','VIDEO'],
     eng: ['user', 'play', 'nope', 'yep', 'yeah', 'nah', 'tbh', 'imo', 'fr', 'thanks', 'please'],
     spa: ['jaja', 'jajaja', 'si', 'sí', 'q', 'que', 'k', 'gracias', 'hola', 'buen', 'bien', 'wey', 'we', 'por'],
     fra: ['mdr', 'ptdr', 'ouais', 'oui', 'merci', 'slt', 'salut', 'svp', 'stp', 'bcp', 'tg'],

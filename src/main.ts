@@ -1,10 +1,11 @@
 import { Devvit } from "@devvit/public-api";
 import { handlePost } from "./handlers/postHandler.js";
 import { handleComment } from "./handlers/commentHandler.js";
-import { languageDetectionGroup } from "./config/settings.js";
+import { languageDetectionGroup, languageSettingsGroup } from "./config/settings.js";
 
 Devvit.addSettings([
-  languageDetectionGroup
+  languageDetectionGroup,
+  languageSettingsGroup
 ]);
 
 Devvit.addTrigger({

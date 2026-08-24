@@ -54,6 +54,21 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
     // Add global whitelisted words to the allowed set
     const allowedWords = new Set<string>(whitelistedWords.global || []);
 
+    // Fetch and parse the custom whitelist from settings
+    const customWhitelistStr = await context.settings.get<string>('CUSTOM_WHITELIST') ?? '';
+    if (customWhitelistStr.trim().length > 0) {
+        const customWords = customWhitelistStr
+            .split(/[,;]+/)
+            .map(w => w.trim().toLowerCase())
+            .filter(w => w.length > 0);
+            
+        customWords.forEach(w => allowedWords.add(w));
+        
+        if (customWords.length > 0) {
+            trace.push(`Loaded ${customWords.length} custom whitelisted words`);
+        }
+    }
+
     for (const code3 of allowedLanguages) {
         // Add whitelisted words for the specific language code
         if (whitelistedWords[code3]) 
