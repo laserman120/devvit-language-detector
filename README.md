@@ -46,6 +46,8 @@ If the script is allowed (like Latin in english) and cannot be immediately block
 **Note: While automated language detection cannot be 100% precise, this app requires no external API keys or additional costs.**
 
 ## Changelog:
+- 0.00.11
+    - Updated Word Whitelist to include GIF and IMAGE
 - 0.00.10
     - Public Release
 - 0.00.07
