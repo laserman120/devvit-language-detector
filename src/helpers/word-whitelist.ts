@@ -4,7 +4,7 @@
 
 export const whitelistedWords: Record<string, string[]> = {
     global: ['lol', 'lmao', 'lmfao', 'wtf', 'omg', 'ok', 'okay', 'yes', 'no', 'idk', 'im', 'ur', 'gg', 'wp', 'ty', 'thx', 'pls', 'plz', 'xd', 'bro', 'bruh','GIF','IMAGE','VIDEO'],
-    eng: ['user', 'play', 'nope', 'yep', 'yeah', 'nah', 'tbh', 'imo', 'fr', 'thanks', 'please'],
+    eng: ['user', 'play', 'nope', 'yep', 'yeah', 'nah', 'tbh', 'imo', 'fr', 'thanks', 'please', 'nice', "popcorn", "underrated", "movie", "breaking", "bad", "terminally"],
     spa: ['jaja', 'jajaja', 'si', 'sí', 'q', 'que', 'k', 'gracias', 'hola', 'buen', 'bien', 'wey', 'we', 'por'],
     fra: ['mdr', 'ptdr', 'ouais', 'oui', 'merci', 'slt', 'salut', 'svp', 'stp', 'bcp', 'tg'],
     deu: ['ja', 'nein', 'ne', 'nee', 'doch', 'danke', 'bitte', 'moin', 'servus', 'haha', 'geil', 'lg'],
