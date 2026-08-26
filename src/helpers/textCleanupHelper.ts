@@ -9,6 +9,8 @@ export function stripFormattingAndUrls(rawText: string): string {
     cleaned = cleaned.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
     // Remove bare URLs
     cleaned = cleaned.replace(/(?:https?:\/\/|www\.)[^\s]+/gi, ' ');
+    // Remove Reddit tags (r/subreddit, u/user)
+    cleaned = cleaned.replace(/\b[ru]\/[^\s]+/gi, ' ');
     // Remove standard Markdown symbols (*, _, ~, >)
     cleaned = cleaned.replace(/[\*_~>]+/g, '');
     // Remove headers

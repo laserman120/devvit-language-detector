@@ -1,6 +1,9 @@
 # Language Detector
-
 An easy-to-use moderation app to automatically report, filter, or remove posts and comments written in unsupported languages.
+
+## IMPORTANT
+**Foreword on Accuracy:** 
+Automated language detection is a complex statistical challenge and is never 100% precise. Slang, proper nouns, abbreviations, and mixed-language content can occasionally cause misidentifications. Because of this, we strongly recommend starting with **"Report" or "Filter"** rather than direct "Removal" until you are comfortable with how the app performs in your community.
 
 ## Setup and installation:
 
@@ -10,8 +13,7 @@ An easy-to-use moderation app to automatically report, filter, or remove posts a
 - This installs it in the selected subreddit and opens the app settings shortly after.
 
 ### Basic Configuration:
-
-- First, select all **allowed** languages for your community.
+- First, select all allowed languages for your community.
     - If you notice a lot of false positives (e.g., the system incorrectly confuses German and Dutch), we recommend allowing both languages.
 
 - Next, select the action the app should take if it encounters a disallowed language in a post or comment. You can select:
@@ -21,17 +23,16 @@ An easy-to-use moderation app to automatically report, filter, or remove posts a
     - Remove (Directly removes the post/comment)
 
 ### Advanced Configuration:
-
 - You can customize the report/removal reason.
-    - We recommend keeping `{{LangName}}`, as this displays which language was detected.
+    - We recommend keeping {{LangName}}, as this displays which language was detected.
 
 - If you use Filter or Remove, you can enable a removal notification.
     - This replies to the removed post/comment, informing the author of the removal.
     - The removal message can be adjusted to fit your subreddit.
     - You can use these wildcards to customize the message:
-        - `{{type}}` - Displays either "post" or "comment"
-        - `{{subredditName}}` - The name of your subreddit without the "r/" prefix
-        - `{{authorName}}` - The username of the author
+        - {{type}} - Displays either "post" or "comment"
+        - {{subredditName}} - The name of your subreddit without the "r/" prefix
+        - {{authorName}} - The username of the author
 
 - The App has two detection modes:
     - Lenient (Recommended) - Tries to avoid false positives but could lead to missed detections.
@@ -42,33 +43,43 @@ An easy-to-use moderation app to automatically report, filter, or remove posts a
     - It is recommended to add words to this list which are commonly used in your community.
 
 ## How the app works:
+The app uses a hybrid pipeline combining high-frequency word lists (stopwords), script analysis, and statistical language identification (using [tinyld](https://www.npmjs.com/package/tinyld?activeTab=readme)) to analyze posts and comments.
 
-Each post/comment is first scanned for common [stopwords](https://github.com/stopwords-iso/stopwords-iso) in the allowed languages. This check also includes the custom whitelist.
-If enough stopwords are found, the system skips further detection.
-*Stopwords are commonly used words such as articles, pronouns and prepositions.*
+Quick Filters & Whitelists: It first strips formatting, URLs, and quotes, checking against built-in and custom whitelists (such as internet slang) to quickly pass normal messages.
 
-When the stopword check fails, it runs the text through [franc-min](https://github.com/wooorm/franc). Because Franc is unreliable on very short text, this only runs if sufficient text is available.
+Script & Statistical Analysis: It examines character alphabets and linguistic patterns to determine the source language.
 
-Currently anything below 30 characters is considered "too short" for franc-min to handle. This might be adjusted in the future.
-
-If the text is too short, the system falls back on basic script analysis. It checks if the text contains a high density of characters belonging to unsupported alphabets (e.g., Cyrillic, Han). 
-
-If the script is allowed (like Latin in english) and cannot be immediately blocked, it performs one final, highly strict stopword density check across all languages. This allows the system to confidently identify and moderate even very short phrases before giving up.
+Safety Nets: Multiple fallback layers ensure that ambiguous or short text isn't wrongfully flagged.
 
 **Note: While automated language detection cannot be 100% precise, this app requires no external API keys or additional costs.**
 
 ## Feedback:
-
 By providing feedback on false positives, incorrectly identified languages and similar occurences we can make adjustments to improve the detection in the future.
 If you want to send feedback you can always contact me [here](https://www.reddit.com/message/compose/?to=_GLAD0S_)
 
-## Changelog:
-- 0.00.12
-    - Added Custom Whitelist setting.
-    - Adjusted internal Whitelist.
-- 0.00.11
-    - Updated Word Whitelist to include GIF and IMAGE
-- 0.00.10
-    - Public Release
-- 0.00.07
-    - Initial Release
+Changelog:
+0.00.14
+
+Rewrote and shortened architecture documentation.
+
+Added accuracy foreword and recommendation notice.
+
+0.00.13
+
+Added Custom Whitelist setting.
+
+Adjusted internal Whitelist.
+
+Improved Text cleanup before detection.
+
+0.00.11
+
+Updated Word Whitelist to include GIF and IMAGE
+
+0.00.10
+
+Public Release
+
+0.00.07
+
+Initial Release

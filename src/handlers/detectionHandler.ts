@@ -4,6 +4,7 @@ import { Devvit, TriggerContext, Post, Comment } from "@devvit/public-api";
 import { stopwords } from '../helpers/stopwords-iso.js';
 import { whitelistedWords } from '../helpers/word-whitelist.js';
 import { stripFormattingAndUrls } from '../helpers/textCleanupHelper.js';
+import { detectAll } from 'tinyld';
 
 const supportedLanguages = [
     'eng', 'cmn', 'hin', 'spa', 'fra', 'arb', 'ben', 'rus', 'por', 'urd', 
@@ -15,13 +16,35 @@ const supportedLanguages = [
 
 const StopwordDensityThresholdLenient = 0.40; // % of words must be valid stopwords to pass the check
 const StopwordDensityThresholdStrict = 0.60; // % of words must be valid stopwords to pass the check
-const StopwordDensityThresholdFallback = 0.75; // % of words must be valid stopwords to pass the check for short texts
-const MinTextLengthForDetection = 30; // Minimum text length for language detection
-const MinConfidenceStrict = 0.1; // Minimum confidence for strict mode ( Low confidence to allow even unsure cases to be caught, risking false positives )
-const MinConfidenceLenient = 0.8; // Minimum confidence for lenient mode
+const StopwordDensityThresholdFallback = 0.50; // % of words must be valid stopwords to pass the check for short texts fallback
+const MinTextLengthForDetection = 35; // Minimum text length for language detection
+const MinConfidenceStrict = 0.1; // Minimum confidence for strict mode
+const MinConfidenceLenient = 0.6; // Minimum confidence for lenient mode
 const MinScriptMatchPercentageLenient = 0.5; // Minimum percentage of characters matching a script for short text detection
 const MinScriptMatchPercentageStrict = 0.7; // Minimum percentage of characters matching a script for short text detection
+const FrancLenientLangCheckCount = 3; // Number of top Franc results to check for lenient mode
 
+// Quick Stopword Settings
+const QuickStopwordMaxWordsForShortText = 12; // Maximum word count for a text to be considered "short" for quick stopword checks
+const QuickStopwordDensityShort = 0.70; // Required stopword density for short texts to pass the quick check
+const QuickStopwordDensityMedium = 0.60; // Required stopword density for medium-length texts to pass the quick check
+
+// TinyLd Settings & Safety Nets
+const TinyLdMinScoreForAllowedMatch = 0.10; // Minimum score for an allowed language to be accepted from top results
+const TinyLdReverseSafetyNetMinWords = 5; // Minimum word count for the safety net to apply
+const TinyLdReverseSafetyNetMaxDensity = 0.15; // Maximum allowed stopword density for the safety net to apply
+
+const SafetyNetMaxWords = 25; // Max word count for the safety net to apply
+const SafetyNetConfidenceExtreme = 0.90; // Minimum confidence for extremely confident guesses
+const SafetyNetConfidenceHigh = 0.60; // Minimum confidence for highly confident guesses
+const SafetyNetDensityExtreme = 0.60; // Required density to overrule extremely high confidence
+const SafetyNetDensityHigh = 0.45; // Required density to overrule highly confident guesses
+const SafetyNetDensityDefault = 0.28; // Required density to overrule unsure guesses
+
+// Dictionary Fallback Settings
+const DictionaryBiasExtremelyShortMaxWords = 5;
+const DictionaryBiasShortMaxWords = 12;
+const DictionaryRejectStrictThreshold = 0.60;
 
 export async function handleDetection(itemId: string, context: TriggerContext, text: string) {
     const trace: string[] = [];
@@ -52,6 +75,10 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
     // Quick Stopword Check
     const words = text.toLowerCase().replace(/[^\p{Letter}\p{Number}\s']/gu, '').split(/\s+/).filter(w => w.length > 0);
     const totalWords = words.length;
+
+    if (totalWords < 3) {
+        return finish(`Skipped: Text contains less than 3 words`);
+    }
 
     // Add global whitelisted words to the allowed set
     const allowedWords = new Set<string>(whitelistedWords.global || []);
@@ -94,111 +121,155 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
 
     const StopwordDensityThreshold = strictnessSetting[0] === 'lenient' ? StopwordDensityThresholdLenient : StopwordDensityThresholdStrict;
 
-    if (totalWords > 0 && (validWordCount / totalWords) >= StopwordDensityThreshold) {
+    // Short texts have high variance and accidental overlaps; require a stricter density to bypass tinyld entirely
+    const quickThreshold = totalWords <= QuickStopwordMaxWordsForShortText ? QuickStopwordDensityShort : QuickStopwordDensityMedium;
+
+    if (totalWords > 0 && (validWordCount / totalWords) >= quickThreshold) {
         return finish(`Passed Quick Stopwords [${validWordCount}/${totalWords}]`);
     }
 
     trace.push(`Stopwords [${validWordCount}/${totalWords}]`);
 
-    // Main Detection using Franc
-    if (text.trim().length >= MinTextLengthForDetection) {
-        trace.push('Mode: Franc');
+    // Script Analysis (Runs on all lengths to quickly catch non-Latin alphabets)
+    const textLetters = [...text].filter(char => /\p{Letter}/u.test(char));
+    const totalLetters = textLetters.length;
+    let scriptFound = false;
 
-        const minConfidence = strictnessSetting[0] === 'lenient' ? MinConfidenceLenient : MinConfidenceStrict;
-        
+    if (totalLetters > 0) {
+        const scriptMappings = [
+            { regex: /\p{Script=Cyrillic}/u, code: 'rus' },
+            { regex: /\p{Script=Han}/u, code: 'cmn' },
+            { regex: /\p{Script=Hiragana}|\p{Script=Katakana}/u, code: 'jpn' },
+            { regex: /\p{Script=Hangul}/u, code: 'kor' },
+            { regex: /\p{Script=Arabic}/u, code: 'arb' },
+            { regex: /\p{Script=Devanagari}/u, code: 'hin' },
+            { regex: /\p{Script=Greek}/u, code: 'ell' },
+            { regex: /\p{Script=Bengali}/u, code: 'ben' },
+            { regex: /\p{Script=Tamil}/u, code: 'tam' },
+            { regex: /\p{Script=Telugu}/u, code: 'tel' }
+        ];
 
-        const results = francAll(text, { only: supportedLanguages });
-        const topCode = results[0][0];
-        const topScore = results[0][1] as number;
-
-        if (topCode === 'und' || topScore < minConfidence) {
-            return finish(`Skipped: Franc Undetermined or < ${minConfidence} (Score: ${topScore})`);
+        for (const script of scriptMappings) {
+            const matchCount = textLetters.filter(char => script.regex.test(char)).length;
+            const minScriptMatchPercentage = strictnessSetting[0] === 'lenient' ? MinScriptMatchPercentageLenient : MinScriptMatchPercentageStrict;
+            
+            if (matchCount / totalLetters > minScriptMatchPercentage) {
+                langCode = script.code;
+                scriptFound = true;
+                trace.push(`Mode: Script Analysis -> Detected ${script.code}`);
+                break;
+            }
         }
+    }
 
-        const numToCheck = strictnessSetting[0] === 'lenient' ? 3 : 1;
-        const topResultsToCheck = results.slice(0, numToCheck);
-
-        const isAllowed = topResultsToCheck.some(([code]) => allowedLanguages.includes(code as string));
-
-        if (isAllowed) {
-            return finish(`Passed: Franc matched allowed lang in top ${numToCheck} (Top code: ${topCode}, Score: ${topScore})`);
-        } 
-        else
-        {
-            trace.push(`Franc rejected: ${topCode} (${topScore})`);
+    if (scriptFound) {
+        if (allowedLanguages.includes(langCode)) {
+            return finish(`Passed: Script check allowed (${langCode})`);
         }
-
-
-        
-        langCode = topCode;
+        trace.push(`Script check rejected: ${langCode}`);
     } 
     else 
     {
-        // If the text is too short, we can attempt to detect the script of the characters to infer the language.
-        const textLetters = [...text].filter(char => /\p{Letter}/u.test(char));
-        const totalLetters = textLetters.length;
+        // Latin/Mixed Script Handling
+        let tinyldSuccess = false;
+        
+        if (text.trim().length >= MinTextLengthForDetection) {
+            trace.push('Mode: tinyld');
+            const minConfidence = strictnessSetting[0] === 'lenient' ? MinConfidenceLenient : MinConfidenceStrict;
+            const rawResults = detectAll(text);
 
-        if (totalLetters > 0) {
-            const scriptMappings = [
-                { regex: /\p{Script=Cyrillic}/u, code: 'rus' }, // Russian / Cyrillic
-                { regex: /\p{Script=Han}/u, code: 'cmn' }, // Chinese
-                { regex: /\p{Script=Hiragana}|\p{Script=Katakana}/u, code: 'jpn' }, // Japanese
-                { regex: /\p{Script=Hangul}/u, code: 'kor' }, // Korean
-                { regex: /\p{Script=Arabic}/u, code: 'arb' }, // Arabic
-                { regex: /\p{Script=Devanagari}/u, code: 'hin' } // Hindi / Devanagari
-            ];
+            const results = rawResults.map(r => {
+                const langData = iso6393.find(l => l.iso6391 === r.lang || l.iso6393 === r.lang);
+                return { code: langData ? langData.iso6393 : 'und', score: r.accuracy };
+            }).filter(r => r.code !== 'und' && supportedLanguages.includes(r.code));
 
-            let scriptFound = false;
-
-            for (const script of scriptMappings) {
-                const matchCount = textLetters.filter(char => script.regex.test(char)).length;
+            if (results.length > 0 && results[0].score >= minConfidence) {
+                tinyldSuccess = true;
+                langCode = results[0].code;
                 
-                const minScriptMatchPercentage = strictnessSetting[0] === 'lenient' ? MinScriptMatchPercentageLenient : MinScriptMatchPercentageStrict;
-                if (matchCount / totalLetters > minScriptMatchPercentage) {
-                    langCode = script.code;
-                    scriptFound = true;
-                    trace.push(`Mode: Script Analysis -> Detected ${script.code}`);
-                    break;
+                const numToCheck = strictnessSetting[0] === 'lenient' ? FrancLenientLangCheckCount : 1;
+                const topResultsToCheck = results.slice(0, numToCheck);
+                const topResultsString = topResultsToCheck.map(r => `${r.code}:${r.score.toFixed(3)}`).join(', ');
+
+                const allowedMatch = topResultsToCheck.find(r => allowedLanguages.includes(r.code) && r.score >= TinyLdMinScoreForAllowedMatch);
+
+                if (allowedMatch) {
+                    if (totalWords >= TinyLdReverseSafetyNetMinWords && (validWordCount / totalWords) < TinyLdReverseSafetyNetMaxDensity) {
+                        trace.push(`tinyld matched allowed (${allowedMatch.code}:${allowedMatch.score.toFixed(3)}) but overridden due to low stopword density`);
+                        tinyldSuccess = false; // Force fallback
+                    } else {
+                        return finish(`Passed: tinyld matched allowed lang in top ${numToCheck} (${topResultsString})`);
+                    }
+                } else {
+                    // Scale the required density based on tinyld's confidence in the foreign language.
+                    const isExtremelyConfident = results[0].score >= SafetyNetConfidenceExtreme;
+                    const isHighlyConfident = results[0].score >= SafetyNetConfidenceHigh;
+                    
+                    let requiredDensity = SafetyNetDensityDefault;
+                    if (isExtremelyConfident) requiredDensity = SafetyNetDensityExtreme; // Do not overrule 90%+ confidence without overwhelming evidence
+                    else if (isHighlyConfident) requiredDensity = SafetyNetDensityHigh;
+
+                    if (strictnessSetting[0] === 'lenient' && totalWords <= SafetyNetMaxWords && (validWordCount / totalWords) >= requiredDensity) {
+                        return finish(`Passed (Safety Net): tinyld rejected (${topResultsString}) but found ${validWordCount}/${totalWords} allowed stopwords`);
+                    }
+                    trace.push(`tinyld rejected: Top results (${topResultsString})`);
                 }
             }
-            // if no script was found, we attempt to use stopword density for short texts as a fallback.
-            if (!scriptFound) {
+        } 
+        
+        if (!tinyldSuccess) 
+            {
+                // Stopword Fallback (Runs for short texts OR long texts where tinyld lacked confidence)
                 let bestLang = 'und';
                 let bestMatch = 0;
-
+                
+                let bestAllowedLang = 'und';
+                let bestAllowedMatch = 0;
+    
                 for (const code3 of supportedLanguages) {
                     let matchCount = 0;
                     const langData = iso6393.find(l => l.iso6393 === code3);
                     const stopwordList = langData?.iso6391 ? (stopwords as any)[langData.iso6391] : [];
                     const whitelist = whitelistedWords[code3] || [];
-                    
                     const langWords = new Set([...(stopwordList || []), ...whitelist]);
                     
                     for (const word of words) {
                         if (langWords.has(word)) matchCount++;
                     }
-
+    
+                    if (allowedLanguages.includes(code3) && matchCount > bestAllowedMatch) {
+                        bestAllowedMatch = matchCount;
+                        bestAllowedLang = code3;
+                    }
+    
                     if (matchCount > bestMatch) {
                         bestMatch = matchCount;
                         bestLang = code3;
                     }
                 }
-
-                if (totalWords > 0 && (bestMatch / totalWords) >= StopwordDensityThresholdFallback) {
-                    langCode = bestLang;
-                    trace.push(`Mode: Short Stopwords -> Detected ${langCode} (${bestMatch}/${totalWords})`);
+    
+                const biasAllowance = totalWords <= DictionaryBiasExtremelyShortMaxWords ? 0 : (totalWords <= DictionaryBiasShortMaxWords ? 1 : 2);
+                if (bestAllowedMatch > 0 && (bestMatch - bestAllowedMatch <= biasAllowance)) {
+                    bestLang = bestAllowedLang;
+                    bestMatch = bestAllowedMatch;
+                }
+    
+                let fallbackThreshold;
+                if (allowedLanguages.includes(bestLang)) {
+                    fallbackThreshold = totalWords > 10 ? StopwordDensityThresholdLenient : StopwordDensityThresholdFallback;
                 } else {
-                    return finish(`Skipped: Under 30 chars (Latin/mixed) and unverified`);
+                    fallbackThreshold = totalWords > 10 ? StopwordDensityThresholdStrict : DictionaryRejectStrictThreshold; 
+                }
+    
+                if (totalWords > 0 && (bestMatch / totalWords) >= fallbackThreshold) {
+                    langCode = bestLang;
+                    trace.push(`Mode: Dictionary Fallback -> Detected ${langCode} (${bestMatch}/${totalWords})`);
+                    if (allowedLanguages.includes(langCode)) return finish(`Passed: Dictionary fallback allowed (${langCode})`);
+                    trace.push(`Dictionary Fallback rejected: ${langCode}`);
+                } else {
+                    return finish(`Skipped: Language could not be determined (${bestMatch}/${totalWords} words matched)`);
                 }
             }
-
-            if (allowedLanguages.includes(langCode)) {
-                return finish(`Passed: Short text allowed (${langCode})`);
-            }
-            trace.push(`Short Text rejected: ${langCode}`);
-        } else {
-            return finish(`Skipped: No recognizable letters`);
-        }
     }
 
     if(langCode === "und"){
