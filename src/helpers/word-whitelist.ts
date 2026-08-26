@@ -8,7 +8,7 @@ export const whitelistedWords: Record<string, string[]> = {
         'idk', 'im', 'ur', 'gg', 'wp', 'ty', 'thx', 'pls', 'plz', 'xd', 
         'bro', 'bruh', 'GIF', 'IMAGE', 'VIDEO', 'oof', 'yikes', 'rip', 
         'vs', 'versus', 'op', 'dm', 'pm', 'irl', 'ama', 'tl', 'dr', 
-        'eli5', 'nsfw', 'sfw', 'fyi', 'btw', 'asap', 'faq', 'edit', "subreddit"
+        'eli5', 'nsfw', 'sfw', 'fyi', 'btw', 'asap', 'faq', 'edit', "subreddit", "lfo"
     ],
     eng: [
         'user', 'play', 'nope', 'yep', 'yeah', 'nah', 'tbh', 'imo', 'fr', 
@@ -47,7 +47,8 @@ export const whitelistedWords: Record<string, string[]> = {
         'servus', 'haha', 'geil', 'lg', 'hallo', 'tach', 'guten', 'tag', 
         'abend', 'nacht', 'morgen', 'zeit', 'mensch', 'kind', 'jahr', 
         'tag', 'weg', 'haus', 'hand', 'teil', 'auge', 'welt', 'land', 
-        'schule', 'platz', 'problem', 'seite', 'geschichte', 'punkt'
+        'schule', 'platz', 'problem', 'seite', 'geschichte', 'punkt', 
+        "still", "blieb", "er", "sie", "es", "der", "die", "das"
     ],
     por: [
         'kkk', 'kkkk', 'rs', 'sim', 'nao', 'não', 'vlw', 'obg', 'vdd', 

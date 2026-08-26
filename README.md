@@ -59,11 +59,11 @@ If you want to send feedback you can always contact me [here](https://www.reddit
 
 ## Changelog:
 
-- 0.00.14
+- 0.00.16
     - Switched from Franc-min to [tinyld](https://www.npmjs.com/package/tinyld?activeTab=readme).
     - Added additional fallbacks and detection systems.
     - Adjusted detection thresholds
-        - The changes increased the detection accuracy by ~ 20% with a massive reduction in false positives.
+        - The changes increased the detection accuracy by ~20% with a massive reduction in false positives.
 
 - 0.00.13
     - Added Custom Whitelist setting.

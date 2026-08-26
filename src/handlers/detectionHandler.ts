@@ -13,6 +13,9 @@ const supportedLanguages = [
 
 // Detection Settings:
 
+const minWordCountLenient = 3; // Minimum word count for lenient mode
+const minWordCountStrict = 2; // Minimum word count for strict mode
+
 const StopwordDensityThresholdLenient = 0.40; // % of words must be valid stopwords to pass the check
 const StopwordDensityThresholdStrict = 0.60; // % of words must be valid stopwords to pass the check
 const StopwordDensityThresholdFallback = 0.50; // % of words must be valid stopwords to pass the check for short texts fallback
@@ -21,6 +24,7 @@ const MinConfidenceStrict = 0.1; // Minimum confidence for strict mode
 const MinConfidenceLenient = 0.6; // Minimum confidence for lenient mode
 const MinScriptMatchPercentageLenient = 0.5; // Minimum percentage of characters matching a script for short text detection
 const MinScriptMatchPercentageStrict = 0.7; // Minimum percentage of characters matching a script for short text detection
+const MinLetterDensityForScript = 0.4; // Minimum letter to non-whitespace ratio to avoid kaomoji false positives
 const FrancLenientLangCheckCount = 3; // Number of top Franc results to check for lenient mode
 
 // Quick Stopword Settings
@@ -75,8 +79,10 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
     const words = text.toLowerCase().replace(/[^\p{Letter}\p{Number}\s']/gu, '').split(/\s+/).filter(w => w.length > 0);
     const totalWords = words.length;
 
-    if (totalWords < 3) {
-        return finish(`Skipped: Text contains less than 3 words`);
+    const minWords = strictnessSetting[0] === 'lenient' ? minWordCountLenient : minWordCountStrict;
+
+    if (totalWords < minWords) {
+        return finish(`Skipped: Text contains less than ${minWords} words`);
     }
 
     // Add global whitelisted words to the allowed set
@@ -132,9 +138,10 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
     // Script Analysis (Runs on all lengths to quickly catch non-Latin alphabets)
     const textLetters = [...text].filter(char => /\p{Letter}/u.test(char));
     const totalLetters = textLetters.length;
+    const nonWhitespaceCount = [...text].filter(char => !/\s/.test(char)).length;
     let scriptFound = false;
 
-    if (totalLetters > 0) {
+    if (totalLetters > 0 && (totalLetters / nonWhitespaceCount >= MinLetterDensityForScript)) {
         const scriptMappings = [
             { regex: /\p{Script=Cyrillic}/u, code: 'rus' },
             { regex: /\p{Script=Han}/u, code: 'cmn' },
