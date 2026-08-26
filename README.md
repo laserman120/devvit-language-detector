@@ -57,29 +57,24 @@ Safety Nets: Multiple fallback layers ensure that ambiguous or short text isn't 
 By providing feedback on false positives, incorrectly identified languages and similar occurences we can make adjustments to improve the detection in the future.
 If you want to send feedback you can always contact me [here](https://www.reddit.com/message/compose/?to=_GLAD0S_)
 
-Changelog:
-0.00.14
+## Changelog:
 
-Rewrote and shortened architecture documentation.
+- 0.00.14
+    - Switched from Franc-min to [tinyld](https://www.npmjs.com/package/tinyld?activeTab=readme).
+    - Added additional fallbacks and detection systems.
+    - Adjusted detection thresholds
+        - The changes increased the detection accuracy by ~ 20% with a massive reduction in false positives.
 
-Added accuracy foreword and recommendation notice.
+- 0.00.13
+    - Added Custom Whitelist setting.
+    - Adjusted internal Whitelist.
+    - Improved Text cleanup before detection.
 
-0.00.13
+- 0.00.11
+    - Updated Word Whitelist to include GIF and IMAGE
 
-Added Custom Whitelist setting.
+- 0.00.10
+    - Public Release
 
-Adjusted internal Whitelist.
-
-Improved Text cleanup before detection.
-
-0.00.11
-
-Updated Word Whitelist to include GIF and IMAGE
-
-0.00.10
-
-Public Release
-
-0.00.07
-
-Initial Release
+- 0.00.07
+    - Initial Release

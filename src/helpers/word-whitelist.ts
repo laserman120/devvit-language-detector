@@ -8,7 +8,7 @@ export const whitelistedWords: Record<string, string[]> = {
         'idk', 'im', 'ur', 'gg', 'wp', 'ty', 'thx', 'pls', 'plz', 'xd', 
         'bro', 'bruh', 'GIF', 'IMAGE', 'VIDEO', 'oof', 'yikes', 'rip', 
         'vs', 'versus', 'op', 'dm', 'pm', 'irl', 'ama', 'tl', 'dr', 
-        'eli5', 'nsfw', 'sfw', 'fyi', 'btw', 'asap', 'faq', 'edit'
+        'eli5', 'nsfw', 'sfw', 'fyi', 'btw', 'asap', 'faq', 'edit', "subreddit"
     ],
     eng: [
         'user', 'play', 'nope', 'yep', 'yeah', 'nah', 'tbh', 'imo', 'fr', 
@@ -19,7 +19,14 @@ export const whitelistedWords: Record<string, string[]> = {
         'damn', 'fuck', 'hell', 'bro', 'best', 'worst', 'thing', 'stuff', 
         'time', 'life', 'people', 'person', 'year', 'day', 'way', 'look', 
         'see', 'come', 'think', 'know', 'want', 'give', 'use', 'find', 
-        'tell', 'ask', 'seem', 'feel', 'try', 'leave', 'call'
+        'tell', 'ask', 'seem', 'feel', 'try', 'leave', 'call',
+        'sub', 'subreddit', 'mods', 'mod', 'post', 'comment', 'upvote', 
+        'downvote', 'karma', 'thread', 'link', 'source', 'edit', 'based', 
+        'cringe', 'oof', 'yikes', 'pog', 'poggers', 'pepe', 'meta', 'nsfw', 
+        'sfw', 'fam', 'homie', 'giga', 'sigma', 'chad', 'simp', 'flex', 
+        'goat', 'goated', 'sus', 'cap', 'nocap', 'bet', 'slaps', 'fire', 
+        'lit', 'lowkey', 'highkey', 'Vibe', 'vibes', 'mood', 'periodt', 
+        'rn', 'asap', 'aint', 'gimme', 'lemme', 'dunno', 'gotcha', 'folks'
     ],
     spa: [
         'jaja', 'jajaja', 'si', 'sí', 'q', 'que', 'k', 'gracias', 'hola', 

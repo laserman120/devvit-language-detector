@@ -1,4 +1,3 @@
-import { francAll } from 'franc-min';
 import { iso6393 } from 'iso-639-3';
 import { Devvit, TriggerContext, Post, Comment } from "@devvit/public-api";
 import { stopwords } from '../helpers/stopwords-iso.js';
