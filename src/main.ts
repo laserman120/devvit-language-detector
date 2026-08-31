@@ -49,6 +49,8 @@ Devvit.addTrigger({
         });
         console.error(`[Setup] Scheduled update check job with ID: ${jobId}`);
 
+        checkForUpdates(_event, context);
+
         } catch (error) {
           console.error(`[Setup] Error during job setup: ${error}`);
         }

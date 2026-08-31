@@ -21,13 +21,18 @@ export async function checkForUpdates(event: any, context: JobContext): Promise<
 
         // Get the stored version from Redis
         const storedVersion = await context.redis.get('app:version');
+        if(!storedVersion || storedVersion == undefined){
+            console.log("[UpdateCheck] No stored version found, setting to current.");
+            await context.redis.set('app:version', latestVersion);
+            return;
+        }
 
-        if (!storedVersion && storedVersion !== latestVersion) {
+        if (storedVersion && storedVersion !== latestVersion) {
             console.log("[UpdateCheck] New version found, sending notification.");
             const currentSub = await context.reddit.getCurrentSubreddit();
             // New version found, notify mods via modmail
             await context.reddit.modMail.createConversation({
-            subredditName: devSubreddit,
+            subredditName: currentSub.name,
             subject: 'Language Detector: App Update Available',
             body: `A new version of the app is available!\n\n**Previous version:** ${storedVersion}\n**New version:** ${latestVersion}\n\nThe changelog can be found here: https://developers.reddit.com/apps/language-detector\n\n**To update the app please visit:** https://developers.reddit.com/r/${currentSub.name}/apps **and press "Update".**`,
             to: null,

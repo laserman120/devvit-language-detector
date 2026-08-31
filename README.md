@@ -59,7 +59,7 @@ By providing feedback on false positives, incorrectly identified languages and s
 If you want to send feedback you can always contact me [here](https://www.reddit.com/message/compose/?to=_GLAD0S_)
 
 ## Changelog:
-- 0.00.18
+- 0.00.20
     - Adjusted detection thresholds
     - Added Modmail as a notification method.
     - Fixed incorrect wildcard for username.
