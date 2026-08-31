@@ -90,6 +90,45 @@ export const languageDetectionGroup = {
                     return 'You must select an action. Select "None" to disable.';
                 }
             }
+        }
+    ]
+};
+
+export const notificationSettingsGroup = {
+    type: 'group' as const,
+    label: 'Notification Settings',
+    helpText: 'Configure how users are notified when their content is filtered or removed.',
+    fields: [
+        {
+            type: 'select' as const,
+            name: 'NOTIFICATION_METHOD',
+            label: 'Notification Method',
+            options: [
+                { label: 'Comment', value: 'comment' },
+                { label: 'Modmail', value: 'modmail' }
+            ],
+            defaultValue: ['comment'],
+            multiSelect: false,
+            scope: 'installation' as const,
+            helpText: 'Select how the user should be notified if their content is filtered or removed.',
+            onValidate: ({ value }: { value?: string[] }) => {
+                if (!value || value.length === 0) {
+                    return 'You must select a notification method.';
+                }
+            }
+        },
+        {
+            type: 'string' as const,
+            name: 'MODMAIL_SUBJECT',
+            label: 'ModMail Subject',
+            defaultValue: `Notice regarding your recent {{type}} in r/{{subredditName}}`,
+            scope: 'installation' as const,
+            helpText: 'The subject used when sending a modmail to the user regarding their filtered or removed content. (Only applied for Modmail notification method)',
+            onValidate: ({ value }:{ value?: string }) => {
+                if (!value || value.length === 0) {
+                    return 'Reason cannot be empty.';
+                }
+            }
         },
         {
             type: 'string' as const,
@@ -110,7 +149,7 @@ export const languageDetectionGroup = {
             label: 'Notify of Filtering',
             defaultValue: true,
             scope: 'installation' as const,
-            helpText: 'Notify the Author by creating a comment below the original post/comment (Only applies if Action is set to Filter).',
+            helpText: 'Notify the Author by creating a comment or by sending a modmail (Only applies if Action is set to Filter).',
         },
         {
             type: 'paragraph' as const,
@@ -131,13 +170,13 @@ export const languageDetectionGroup = {
             label: 'Notify of Removal',
             defaultValue: true,
             scope: 'installation' as const,
-            helpText: 'Notify the Author by creating a comment below the original post/comment (Only applies if Action is set to Remove).',
+            helpText: 'Notify the Author by creating a comment or by sending a modmail (Only applies if Action is set to Remove).',
         },
         {
             type: 'paragraph' as const,
             name: 'REMOVAL_MESSAGE',
             label: 'Removal Notification Message',
-            defaultValue: 'Hello {{UserName}}, your {{type}} has been removed as it broke our rules.\nOnly {{type}}s in english are allowed on r/{{subredditName}}.\n\n*This action was performed automatically if you believe this is an error please reach out through our [modmail](https://www.reddit.com/message/compose?to=r/{{subredditName}}).*',
+            defaultValue: 'Hello {{userName}}, your {{type}} has been removed as it broke our rules.\nOnly {{type}}s in english are allowed on r/{{subredditName}}.\n\n*This action was performed automatically if you believe this is an error please reach out through our [modmail](https://www.reddit.com/message/compose?to=r/{{subredditName}}).*',
             scope: 'installation' as const,
             helpText: 'The message sent to the user when their content is removed.',
             onValidate: ({ value }:{ value?: string }) => {

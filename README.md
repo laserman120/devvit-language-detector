@@ -23,16 +23,17 @@ Automated language detection is a complex statistical challenge and is never 100
     - Remove (Directly removes the post/comment)
 
 ### Advanced Configuration:
+
 - You can customize the report/removal reason.
     - We recommend keeping {{LangName}}, as this displays which language was detected.
 
 - If you use Filter or Remove, you can enable a removal notification.
-    - This replies to the removed post/comment, informing the author of the removal.
+    - The notification can either be sent as a comment or through modmail.
     - The removal message can be adjusted to fit your subreddit.
     - You can use these wildcards to customize the message:
         - {{type}} - Displays either "post" or "comment"
         - {{subredditName}} - The name of your subreddit without the "r/" prefix
-        - {{authorName}} - The username of the author
+        - {{userName}} - The username of the author
 
 - The App has two detection modes:
     - Lenient (Recommended) - Tries to avoid false positives but could lead to missed detections.
@@ -58,8 +59,14 @@ By providing feedback on false positives, incorrectly identified languages and s
 If you want to send feedback you can always contact me [here](https://www.reddit.com/message/compose/?to=_GLAD0S_)
 
 ## Changelog:
+- 0.00.18
+    - Adjusted detection thresholds
+    - Added Modmail as a notification method.
+    - Fixed incorrect wildcard for username.
+    - Added update notification system.
+    - Fixed missing languages in the detection system.
 
-- 0.00.16
+- 0.00.17
     - Switched from Franc-min to [tinyld](https://www.npmjs.com/package/tinyld?activeTab=readme).
     - Added additional fallbacks and detection systems.
     - Adjusted detection thresholds

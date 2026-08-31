@@ -7,7 +7,7 @@ import { iso6393 } from 'iso-639-3';
 const mockSettings: Record<string, any> = {
     'STRICTNESS': ['lenient'],
     'ALLOWED_LANGUAGES': ['eng'],
-    'CUSTOM_WHITELIST': '',
+    'CUSTOM_WHITELIST': 'Cheap. Hot. Humid. Mosquitos. Religion. Sweet tea.',
     'ACTION_ON_UNSUPPORTED_POST': ['report'],
     'ACTION_ON_UNSUPPORTED_COMMENT': ['report'],
     'ACTION_REASON': 'Language not allowed: {{LangName}}'
@@ -67,7 +67,7 @@ async function runTests() {
         
         let actual = 'und';
         
-        if (traceOutput.includes('Passed') || traceOutput.includes('Allowed') || traceOutput.includes('Detected')) {
+        if (traceOutput.includes('Passed') || traceOutput.includes('Allowed') || traceOutput.includes('Detected') || traceOutput.includes('Action:')) {
             const match = traceOutput.match(/(?:allowed|Detected|Action:.*?|top \d+)\s*\(([^)]+)\)/);
             if (match) {
                 const parts = match[1].split(':');

@@ -8,7 +8,9 @@ export const whitelistedWords: Record<string, string[]> = {
         'idk', 'im', 'ur', 'gg', 'wp', 'ty', 'thx', 'pls', 'plz', 'xd', 
         'bro', 'bruh', 'GIF', 'IMAGE', 'VIDEO', 'oof', 'yikes', 'rip', 
         'vs', 'versus', 'op', 'dm', 'pm', 'irl', 'ama', 'tl', 'dr', 
-        'eli5', 'nsfw', 'sfw', 'fyi', 'btw', 'asap', 'faq', 'edit', "subreddit", "lfo"
+        'eli5', 'nsfw', 'sfw', 'fyi', 'btw', 'asap', 'faq', 'edit', "subreddit", "lfo", 
+        '¯\\_(ツ)_/¯', '¯\_(ツ)_/¯', '( ͡° ͜ʖ ͡°)', 'ಠ_ಠ', '(╯°□°）╯︵ ┻━┻', '┬─┬ノ( º _ ºノ)', 
+        'ʕ•ᴥ•ʔ', '(◕‿◕✿)', 'ಥ_ಥ', '(ง\'̀-\'́)ง', '(* ^ ω ^)', '(´･ω･`)', '＼(＾O＾)／'
     ],
     eng: [
         'user', 'play', 'nope', 'yep', 'yeah', 'nah', 'tbh', 'imo', 'fr', 
@@ -26,7 +28,8 @@ export const whitelistedWords: Record<string, string[]> = {
         'sfw', 'fam', 'homie', 'giga', 'sigma', 'chad', 'simp', 'flex', 
         'goat', 'goated', 'sus', 'cap', 'nocap', 'bet', 'slaps', 'fire', 
         'lit', 'lowkey', 'highkey', 'Vibe', 'vibes', 'mood', 'periodt', 
-        'rn', 'asap', 'aint', 'gimme', 'lemme', 'dunno', 'gotcha', 'folks'
+        'rn', 'asap', 'aint', 'gimme', 'lemme', 'dunno', 'gotcha', 'folks', 
+        "folk", "songs", "song"
     ],
     spa: [
         'jaja', 'jajaja', 'si', 'sí', 'q', 'que', 'k', 'gracias', 'hola', 

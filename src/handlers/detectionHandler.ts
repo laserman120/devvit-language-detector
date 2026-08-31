@@ -8,46 +8,55 @@ import { detectAll } from 'tinyld';
 const supportedLanguages = [
     'eng', 'cmn', 'hin', 'spa', 'fra', 'arb', 'ben', 'rus', 'por', 'urd', 
     'ind', 'deu', 'jpn', 'mar', 'tel', 'tur', 'tam', 'vie', 'tgl', 'kor', 
-    'pes', 'pol', 'ita', 'nld', 'ron', 'ell', 'ces', 'swe', 'hun', 'fin'
+    'pes', 'pol', 'ita', 'nld', 'ron', 'ell', 'ces', 'swe', 'hun', 'fin', 
+    'dan', 'pan', 'guj', 'mal', 'kan', 'ori', 'sin', 'nep', 'tha', 'mya', 
+    'khm', 'jav', 'swa', 'hau', 'yor', 'ibo', 'zul', 'afr', 'amh', 'som', 
+    'ukr', 'bul', 'srp', 'hrv', 'slk', 'nor', 'cat', 'heb', 'kaz', 'uzb', 
+    'lit', 'lav', 'est'
 ];
 
 // Detection Settings:
 
+// Word Count for detailed detection. 
 const minWordCountLenient = 3; // Minimum word count for lenient mode
 const minWordCountStrict = 2; // Minimum word count for strict mode
 
-const StopwordDensityThresholdLenient = 0.40; // % of words must be valid stopwords to pass the check
-const StopwordDensityThresholdStrict = 0.60; // % of words must be valid stopwords to pass the check
-const StopwordDensityThresholdFallback = 0.50; // % of words must be valid stopwords to pass the check for short texts fallback
+// Quick Stopword Settings
+// The quick stopword check is a fast pre-check to catch obvious allowed languages before running more expensive detection methods.
+const QuickStopwordMaxWordsForShortText = 12; // Maximum word count for a text to be considered "short" for quick stopword checks
+const QuickStopwordDensityShort = 0.60; // Required stopword density for short texts to pass the quick check
+const QuickStopwordDensityMedium = 0.50; // Required stopword density for medium-length texts to pass the quick check
+
+// Script Analysis Settings
+// Quick script analysis to catch non-latin scripts without running the full detection.
+const MinLetterDensityForScript = 0.4; // Minimum letter to non-whitespace ratio to avoid kaomoji false positives
+const MinScriptMatchPercentageLenient = 0.6; // Minimum percentage of characters matching a script for short text detection
+const MinScriptMatchPercentageStrict = 0.4; // Minimum percentage of characters matching a script for short text detection
+
+// TinyLd Settings & Safety Nets
+// TinyLd is only used if enough text is present. Safety net is used to prevent false positives on short texts. Rejection favored over mistakes.
 const MinTextLengthForDetection = 35; // Minimum text length for language detection
 const MinConfidenceStrict = 0.1; // Minimum confidence for strict mode
 const MinConfidenceLenient = 0.6; // Minimum confidence for lenient mode
-const MinScriptMatchPercentageLenient = 0.5; // Minimum percentage of characters matching a script for short text detection
-const MinScriptMatchPercentageStrict = 0.7; // Minimum percentage of characters matching a script for short text detection
-const MinLetterDensityForScript = 0.4; // Minimum letter to non-whitespace ratio to avoid kaomoji false positives
-const FrancLenientLangCheckCount = 3; // Number of top Franc results to check for lenient mode
-
-// Quick Stopword Settings
-const QuickStopwordMaxWordsForShortText = 12; // Maximum word count for a text to be considered "short" for quick stopword checks
-const QuickStopwordDensityShort = 0.70; // Required stopword density for short texts to pass the quick check
-const QuickStopwordDensityMedium = 0.60; // Required stopword density for medium-length texts to pass the quick check
-
-// TinyLd Settings & Safety Nets
+const LenientLangCheckCount = 3; // Number of top results to check for lenient mode
 const TinyLdMinScoreForAllowedMatch = 0.10; // Minimum score for an allowed language to be accepted from top results
 const TinyLdReverseSafetyNetMinWords = 5; // Minimum word count for the safety net to apply
 const TinyLdReverseSafetyNetMaxDensity = 0.15; // Maximum allowed stopword density for the safety net to apply
-
 const SafetyNetMaxWords = 25; // Max word count for the safety net to apply
 const SafetyNetConfidenceExtreme = 0.90; // Minimum confidence for extremely confident guesses
 const SafetyNetConfidenceHigh = 0.60; // Minimum confidence for highly confident guesses
-const SafetyNetDensityExtreme = 0.60; // Required density to overrule extremely high confidence
-const SafetyNetDensityHigh = 0.45; // Required density to overrule highly confident guesses
+const SafetyNetDensityExtreme = 0.50; // Required density to overrule extremely high confidence
+const SafetyNetDensityHigh = 0.40; // Required density to overrule highly confident guesses
 const SafetyNetDensityDefault = 0.28; // Required density to overrule unsure guesses
 
 // Dictionary Fallback Settings
-const DictionaryBiasExtremelyShortMaxWords = 5;
-const DictionaryBiasShortMaxWords = 12;
-const DictionaryRejectStrictThreshold = 0.60;
+// Fallback for short texts or when tinyld fails. Uses stopword density to determine the most likely language.
+const DictionaryBiasExtremelyShortMaxWords = 5; // Maximum Word count for the text to be considered Extremely Short
+const DictionaryBiasShortMaxWords = 12; // Maximum Word count for the text to be considered Short
+const StopwordDensityThresholdLenient = 0.40; // % of words must be valid stopwords to pass the check
+const StopwordDensityThresholdStrict = 0.60; // % of words must be valid stopwords to pass the check
+const StopwordDensityThresholdFallback = 0.50; // % of words must be valid stopwords to pass the check for short texts fallback
+const DictionaryRejectStrictThreshold = 0.60; // Required density to accept a non-allowed language in strict mode for short texts
 
 export async function handleDetection(itemId: string, context: TriggerContext, text: string) {
     const trace: string[] = [];
@@ -80,10 +89,6 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
     const totalWords = words.length;
 
     const minWords = strictnessSetting[0] === 'lenient' ? minWordCountLenient : minWordCountStrict;
-
-    if (totalWords < minWords) {
-        return finish(`Skipped: Text contains less than ${minWords} words`);
-    }
 
     // Add global whitelisted words to the allowed set
     const allowedWords = new Set<string>(whitelistedWords.global || []);
@@ -123,8 +128,6 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
             validWordCount++;
         } 
     }
-
-    const StopwordDensityThreshold = strictnessSetting[0] === 'lenient' ? StopwordDensityThresholdLenient : StopwordDensityThresholdStrict;
 
     // Short texts have high variance and accidental overlaps; require a stricter density to bypass tinyld entirely
     const quickThreshold = totalWords <= QuickStopwordMaxWordsForShortText ? QuickStopwordDensityShort : QuickStopwordDensityMedium;
@@ -176,6 +179,12 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
     } 
     else 
     {
+
+        // Word check after script analysis to ensure we have enough words for further detection
+        if (totalWords < minWords) {
+            return finish(`Skipped: Text contains less than ${minWords} words`);
+        }
+
         // Latin/Mixed Script Handling
         let tinyldSuccess = false;
         
@@ -193,7 +202,7 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
                 tinyldSuccess = true;
                 langCode = results[0].code;
                 
-                const numToCheck = strictnessSetting[0] === 'lenient' ? FrancLenientLangCheckCount : 1;
+                const numToCheck = strictnessSetting[0] === 'lenient' ? LenientLangCheckCount : 1;
                 const topResultsToCheck = results.slice(0, numToCheck);
                 const topResultsString = topResultsToCheck.map(r => `${r.code}:${r.score.toFixed(3)}`).join(', ');
 
@@ -220,6 +229,13 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
                     }
                     trace.push(`tinyld rejected: Top results (${topResultsString})`);
                 }
+            } else {
+                if(!results || results.length === 0) {
+                    trace.push(`tinyld rejected: No results returned`);
+                } else {
+                    trace.push(`tinyld rejected: No results met confidence threshold (${results[0].score} < ${minConfidence})`);
+                }
+                
             }
         } 
         
@@ -355,13 +371,26 @@ async function sendRemovalNotification(context: TriggerContext, item: Post | Com
     if(!rawMessage){
         return;
     }
-    const message = rawMessage.replace(/{{type}}/g, itemType).replace(/{{subredditName}}/g, subredditName).replace(/{{UserName}}/g, authorName);
+    const message = rawMessage.replace(/{{type}}/gi, itemType).replace(/{{subredditName}}/gi, subredditName).replace(/{{UserName}}/gi, authorName);
 
-    const comment = await context.reddit.submitComment({
-        id: item.id,
-        text: message,
-    });
-    await comment.distinguish(true);
-    console.log(`[${item.id}] Left comment notification (${type})`);
-    
+    const notificationMethod = await context.settings.get<string[]>('NOTIFICATION_METHOD') ?? ['comment'];
+    if (notificationMethod[0] === 'modmail') {
+        const modmailSubjectRaw = await context.settings.get<string>('MODMAIL_SUBJECT') ?? `Notice regarding your recent ${itemType} in r/${subredditName}`;
+        const modmailSubject = modmailSubjectRaw.replace(/{{type}}/gi, itemType).replace(/{{subredditName}}/gi, subredditName).replace(/{{userName}}/gi, authorName);
+        await context.reddit.modMail.createConversation({
+            subredditName: subredditName,
+            subject: modmailSubject,
+            body: message,
+            to: authorName,
+            isAuthorHidden: true,
+        });
+        console.log(`[${item.id}] Sent modmail notification (${type})`);
+    } else {
+        const comment = await context.reddit.submitComment({
+            id: item.id,
+            text: message,
+        });
+        await comment.distinguish(true);
+        console.log(`[${item.id}] Left comment notification (${type})`);
+    }
 }
