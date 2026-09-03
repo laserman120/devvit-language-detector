@@ -123,7 +123,7 @@ export const notificationSettingsGroup = {
             label: 'ModMail Subject',
             defaultValue: `Notice regarding your recent {{type}} in r/{{subredditName}}`,
             scope: 'installation' as const,
-            helpText: 'The subject used when sending a modmail to the user regarding their filtered or removed content. (Only applied for Modmail notification method)',
+            helpText: 'The subject used when sending a modmail to the user regarding their filtered or removed content. (Only used in ModMail)',
             onValidate: ({ value }:{ value?: string }) => {
                 if (!value || value.length === 0) {
                     return 'Reason cannot be empty.';
@@ -155,7 +155,7 @@ export const notificationSettingsGroup = {
             type: 'paragraph' as const,
             name: 'FILTER_MESSAGE',
             label: 'Filter Notification Message',
-            defaultValue: 'Hello {{UserName}}, your {{type}} has been put into a queue for manual approval.\nBe aware that only {{type}}s in english are allowed on r/{{subredditName}}.\nIf your {{type}} follows the rules it will be approved as soon as possible\n\n*This action was performed automatically if you believe this is an error please reach out through our [modmail](https://www.reddit.com/message/compose?to=r/{{subredditName}}).*',
+            defaultValue: 'Hello {{UserName}}, your [{{type}}]({{permalink}}) has been put into a queue for manual approval.\nBe aware that only {{type}}s in english are allowed on r/{{subredditName}}.\nIf your {{type}} follows the rules it will be approved as soon as possible\n\n*This action was performed automatically if you believe this is an error please reach out through our [modmail](https://www.reddit.com/message/compose?to=r/{{subredditName}}).*',
             scope: 'installation' as const,
             helpText: 'The message sent to the user when their content is filtered.',
             onValidate: ({ value }:{ value?: string }) => {
@@ -176,7 +176,7 @@ export const notificationSettingsGroup = {
             type: 'paragraph' as const,
             name: 'REMOVAL_MESSAGE',
             label: 'Removal Notification Message',
-            defaultValue: 'Hello {{userName}}, your {{type}} has been removed as it broke our rules.\nOnly {{type}}s in english are allowed on r/{{subredditName}}.\n\n*This action was performed automatically if you believe this is an error please reach out through our [modmail](https://www.reddit.com/message/compose?to=r/{{subredditName}}).*',
+            defaultValue: 'Hello {{userName}}, your [{{type}}]({{permalink}}) has been removed as it broke our rules.\nOnly {{type}}s in english are allowed on r/{{subredditName}}.\n\n*This action was performed automatically if you believe this is an error please reach out through our [modmail](https://www.reddit.com/message/compose?to=r/{{subredditName}}).*',
             scope: 'installation' as const,
             helpText: 'The message sent to the user when their content is removed.',
             onValidate: ({ value }:{ value?: string }) => {

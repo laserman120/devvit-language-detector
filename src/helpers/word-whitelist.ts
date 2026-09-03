@@ -10,7 +10,19 @@ export const whitelistedWords: Record<string, string[]> = {
         'vs', 'versus', 'op', 'dm', 'pm', 'irl', 'ama', 'tl', 'dr', 
         'eli5', 'nsfw', 'sfw', 'fyi', 'btw', 'asap', 'faq', 'edit', "subreddit", "lfo", 
         '¯\\_(ツ)_/¯', '¯\_(ツ)_/¯', '( ͡° ͜ʖ ͡°)', 'ಠ_ಠ', '(╯°□°）╯︵ ┻━┻', '┬─┬ノ( º _ ºノ)', 
-        'ʕ•ᴥ•ʔ', '(◕‿◕✿)', 'ಥ_ಥ', '(ง\'̀-\'́)ง', '(* ^ ω ^)', '(´･ω･`)', '＼(＾O＾)／'
+        'ʕ•ᴥ•ʔ', '(◕‿◕✿)', 'ಥ_ಥ', '(ง\'̀-\'́)ง', '(* ^ ω ^)', '(´･ω･`)', '＼(＾O＾)／',
+        "alexa", "soundbar", "spotify", "youtube", "netflix", "hulu", "prime", "disney", "twitch",
+        "twitter", "instagram", "facebook", "snapchat", "tiktok", "reddit", "linkedin", "discord", "slack",
+        "bluetooth", "wifi", "ethernet", "usb", "hdmi", "vga", "displayport", "thunderbolt", "lightning",
+        "apple", "samsung", "google", "microsoft", "amazon", "nvidia", "amd", "intel", "qualcomm",
+        "ps5", "xbox", "switch", "pc", "laptop", "tablet", "smartphone", "smartwatch", "earbuds",
+        "smart", "home", "assistant", "cortana", "siri", "bixby", "gemini",
+        "GPT", "ChatGPT", "Bard", "Claude", "LLaMA", "Mistral", "Falcon", "Orca", "Pythia", "MPT",
+        "app", "update", "bug", "lag", "patch", "server", "online", "offline", "stream", "email",
+        "internet", "web", "link", "url", "browser", "hardware", "software", "pixel", "router",
+        "npc", "afk", "dlc", "fps", "rpg", "mmo", "pvp", "pve", "noob", "bot", "ping", "buff", "nerf", "rng",
+        "admin", "mod", "upvote", "downvote", "repost", "karma", "troll", "meme", "hashtag", "fomo",
+        "crypto", "bitcoin", "btc", "eth", "nft", "hodl"
     ],
     eng: [
         'user', 'play', 'nope', 'yep', 'yeah', 'nah', 'tbh', 'imo', 'fr', 

@@ -7,7 +7,7 @@ import { iso6393 } from 'iso-639-3';
 const mockSettings: Record<string, any> = {
     'STRICTNESS': ['lenient'],
     'ALLOWED_LANGUAGES': ['eng'],
-    'CUSTOM_WHITELIST': 'Cheap. Hot. Humid. Mosquitos. Religion. Sweet tea.',
+    'CUSTOM_WHITELIST': '',
     'ACTION_ON_UNSUPPORTED_POST': ['report'],
     'ACTION_ON_UNSUPPORTED_COMMENT': ['report'],
     'ACTION_REASON': 'Language not allowed: {{LangName}}'

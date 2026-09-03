@@ -5,6 +5,8 @@ An easy-to-use moderation app to automatically report, filter, or remove posts a
 **Foreword on Accuracy:** 
 Automated language detection is a complex statistical challenge and is never 100% precise. Slang, proper nouns, abbreviations, and mixed-language content can occasionally cause misidentifications. Because of this, we strongly recommend starting with **"Report" or "Filter"** rather than direct "Removal" until you are comfortable with how the app performs in your community.
 
+---
+
 ## Setup and installation:
 
 ### Installing the app in your subreddit:
@@ -31,9 +33,11 @@ Automated language detection is a complex statistical challenge and is never 100
     - The notification can either be sent as a comment or through modmail.
     - The removal message can be adjusted to fit your subreddit.
     - You can use these wildcards to customize the message:
-        - {{type}} - Displays either "post" or "comment"
-        - {{subredditName}} - The name of your subreddit without the "r/" prefix
-        - {{userName}} - The username of the author
+        - {{type}} - Displays either "post" or "comment".
+        - {{subredditName}} - The name of your subreddit without the "r/" prefix.
+        - {{userName}} - The username of the author.
+        - {{PermaLink}} - The URL to the actioned item.
+        - {{LangName}} - The written out name of the detected language.
 
 - The App has two detection modes:
     - Lenient (Recommended) - Tries to avoid false positives but could lead to missed detections.
@@ -42,6 +46,8 @@ Automated language detection is a complex statistical challenge and is never 100
 - The Custom Whitelisted Words can be adjusted to decrease false positives.
     - Any words added to the list will be treated as part of the allowed languages, increasing the chance of correct detection.
     - It is recommended to add words to this list which are commonly used in your community.
+
+---
 
 ## How the app works:
 The app uses a hybrid pipeline combining high-frequency word lists (stopwords), script analysis, and statistical language identification (using [tinyld](https://www.npmjs.com/package/tinyld?activeTab=readme)) to analyze posts and comments.
@@ -54,11 +60,27 @@ Safety Nets: Multiple fallback layers ensure that ambiguous or short text isn't 
 
 **Note: While automated language detection cannot be 100% precise, this app requires no external API keys or additional costs.**
 
+---
+
 ## Feedback:
 By providing feedback on false positives, incorrectly identified languages and similar occurences we can make adjustments to improve the detection in the future.
 If you want to send feedback you can always contact me [here](https://www.reddit.com/message/compose/?to=_GLAD0S_)
 
+---
+
+## Benchmarking:
+Currently the system is benchmarked on roughly 35.000 texts of various length.
+The exact list used in benchmarking can be found on [GitHub](https://github.com/laserman120/devvit-language-detector).
+Any reported false positives are added to this list.
+
+---
+
 ## Changelog:
+- 0.00.21
+    - Added {{PermaLink}} Wildcard to Link to the removed or filtered item.
+    - Wildcard {{LangName}} is now also supported in removal notifications.
+    - Further improved detection accuracy.
+
 - 0.00.20
     - Adjusted detection thresholds
     - Added Modmail as a notification method.
