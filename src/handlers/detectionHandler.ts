@@ -19,7 +19,7 @@ const supportedLanguages = [
 // Detection Settings:
 
 // Word Count for detailed detection. 
-const BASE_MIN_WORDS_LENIENT = 3; // Minimum word count for lenient mode
+const BASE_MIN_WORDS_LENIENT = 2; // Minimum word count for lenient mode
 const BASE_MIN_WORDS_STRICT = 2; // Minimum word count for strict mode
 
 // Quick Stopword Settings
@@ -36,7 +36,7 @@ const SCRIPT_REQUIRED_MATCH_STRICT = 0.30; // Minimum percentage of characters m
 
 // TinyLd Settings & Safety Nets
 // TinyLd is only used if enough text is present. Safety net is used to prevent false positives on short texts. Rejection favored over mistakes.
-const TINYLD_MIN_CHAR_LENGTH = 35; // Minimum text length for language detection
+const TINYLD_MIN_CHAR_LENGTH = 15; // Minimum text length for language detection
 const TINYLD_REQUIRED_CONFIDENCE_STRICT = 0.1; // Minimum confidence for strict mode
 const TINYLD_REQUIRED_CONFIDENCE_LENIENT = 0.55; // Minimum confidence for lenient mode
 const TINYLD_LENIENT_TOP_RESULTS_TO_CHECK = 3; // Number of top results to check for lenient mode
@@ -50,7 +50,7 @@ const SAFETY_NET_OVERRIDE_MAX_WORDS = 25; // Max word count for the safety net t
 const SAFETY_NET_OVERRIDE_TINYLD_CONF_EXTREME = 0.85; // Minimum confidence for extremely confident guesses
 const SAFETY_NET_OVERRIDE_TINYLD_CONF_HIGH = 0.60; // Minimum confidence for highly confident guesses
 
-const SAFETY_NET_OVERRIDE_REQ_DENSITY_EXTREME = 0.50; // Required density to overrule extremely high confidence
+const SAFETY_NET_OVERRIDE_REQ_DENSITY_EXTREME = 0.52; // Required density to overrule extremely high confidence
 const SAFETY_NET_OVERRIDE_REQ_DENSITY_HIGH = 0.40; // Required density to overrule highly confident guesses
 const SAFETY_NET_OVERRIDE_REQ_DENSITY_DEFAULT = 0.28; // Required density to overrule unsure guesses
 
@@ -141,7 +141,7 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
         } 
     }
 
-    // Short texts have high variance and accidental overlaps; require a stricter density to bypass tinyld entirely
+    // Quick short text check
     const quickThreshold = totalWords <= QUICK_CHECK_SHORT_TEXT_MAX_WORDS ? QUICK_CHECK_REQUIRED_DENSITY_SHORT : QUICK_CHECK_REQUIRED_DENSITY_MEDIUM;
 
     if (totalWords > 0 && (validWordCount / totalWords) >= quickThreshold) {
@@ -150,7 +150,7 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
 
     trace.push(`Stopwords [${validWordCount}/${totalWords}]`);
 
-    // Script Analysis (Runs on all lengths to quickly catch non-allowed alphabets)
+    // Script Analysis 
     const textLetters = [...text].filter(char => /\p{Letter}/u.test(char));
     const totalLetters = textLetters.length;
     const nonWhitespaceCount = [...text].filter(char => !/\s/.test(char)).length;
@@ -167,7 +167,10 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
             { regex: /\p{Script=Greek}/u, code: 'ell' },
             { regex: /\p{Script=Bengali}/u, code: 'ben' },
             { regex: /\p{Script=Tamil}/u, code: 'tam' },
-            { regex: /\p{Script=Telugu}/u, code: 'tel' }
+            { regex: /\p{Script=Telugu}/u, code: 'tel' },
+            { regex: /\p{Script=Tamil}/u, code: 'tam' },
+            { regex: /\p{Script=Telugu}/u, code: 'tel' },
+            { regex: /\p{Script=Hebrew}/u, code: 'heb' }
         ];
 
         for (const script of scriptMappings) {
@@ -208,7 +211,7 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
             const results = rawResults.map(r => {
                 const langData = iso6393.find(l => l.iso6391 === r.lang || l.iso6393 === r.lang);
                 return { code: langData ? langData.iso6393 : 'und', score: r.accuracy };
-            }).filter(r => r.code !== 'und' && supportedLanguages.includes(r.code));
+            }).filter(r => r.code !== 'und');
 
             if (results.length > 0 && results[0].score >= minConfidence) {
                 tinyldSuccess = true;
@@ -233,7 +236,7 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
                     const isHighlyConfident = results[0].score >= SAFETY_NET_OVERRIDE_TINYLD_CONF_HIGH;
                     
                     let requiredDensity = SAFETY_NET_OVERRIDE_REQ_DENSITY_DEFAULT;
-                    if (isExtremelyConfident) requiredDensity = SAFETY_NET_OVERRIDE_REQ_DENSITY_EXTREME; // Do not overrule 90%+ confidence without overwhelming evidence
+                    if (isExtremelyConfident) requiredDensity = SAFETY_NET_OVERRIDE_REQ_DENSITY_EXTREME; // Do not overrule extremely high confidence without overwhelming evidence
                     else if (isHighlyConfident) requiredDensity = SAFETY_NET_OVERRIDE_REQ_DENSITY_HIGH;
 
                     if (strictnessSetting[0] === 'lenient' && totalWords <= SAFETY_NET_OVERRIDE_MAX_WORDS && (validWordCount / totalWords) >= requiredDensity) {

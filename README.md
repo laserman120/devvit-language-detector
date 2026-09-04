@@ -76,6 +76,9 @@ Any reported false positives are added to this list.
 ---
 
 ## Changelog:
+- 0.00.22
+    - Improved detection accuracy with a focus on short text.
+
 - 0.00.21
     - Added {{PermaLink}} Wildcard to Link to the removed or filtered item.
     - Wildcard {{LangName}} is now also supported in removal notifications.

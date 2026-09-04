@@ -3,10 +3,12 @@ const cases = casesData as Array<{ text: string; expected: string }>;
 import { handleDetection } from '../src/handlers/detectionHandler.js';
 import { TriggerContext } from '@devvit/public-api';
 import { iso6393 } from 'iso-639-3';
+import { stopwords } from '../src/helpers/stopwords-iso.js';
+import { whitelistedWords } from '../src/helpers/word-whitelist.js';
 
 const mockSettings: Record<string, any> = {
     'STRICTNESS': ['lenient'],
-    'ALLOWED_LANGUAGES': ['eng'],
+    'ALLOWED_LANGUAGES': ['deu'],
     'CUSTOM_WHITELIST': '',
     'ACTION_ON_UNSUPPORTED_POST': ['report'],
     'ACTION_ON_UNSUPPORTED_COMMENT': ['report'],
@@ -32,17 +34,35 @@ const mockContext = {
     }
 } as unknown as TriggerContext;
 
+
+
 async function runTests() {
 
+    const allKnownWords = new Set<string>();
+    Object.values(whitelistedWords).forEach(list => list.forEach(w => allKnownWords.add(w.toLowerCase())));
+    Object.values(stopwords as Record<string, string[]>).forEach(list => list.forEach(w => allKnownWords.add(w.toLowerCase())));
 
     let passed = 0;
     let failed = 0;
     let slipped = 0;
     let undefinedCount = 0;
+    const undefinedReasons: Record<string, number> = {};
+    const missingWordCounts: Record<string, number> = {};
 
     
     // Override console.log to capture trace without printing it unless failed
     let originalLog = console.log;
+
+    for (const [langCode, list] of Object.entries(whitelistedWords)) {
+        const langData = iso6393.find(l => l.iso6393 === langCode);
+        const code2 = langData?.iso6391;
+        const langStopwords = new Set(code2 && (stopwords as any)[code2] ? (stopwords as any)[code2] : []);
+        const duplicates = list.filter(w => langStopwords.has(w.toLowerCase()));
+        
+        if (duplicates.length > 0) {
+            originalLog(`[WARN] whitelistedWords.${langCode} contains words already present in stopwords (${code2}): ${duplicates.join(', ')}`);
+        }
+    }
 
     originalLog(`Running ${cases.length} test cases...`);
 
@@ -88,11 +108,49 @@ async function runTests() {
             passed++;
         } else if (actual === 'und') {
             undefinedCount++;
+
+            const finalReason = traceOutput.split('->').pop()?.trim() || 'Unknown';
+            
+            const groupKey = finalReason
+                .replace(/\([a-z]{3}:[\d.]+\)/g, '([lang]:[score])')
+                .replace(/rejected: [a-z]{3}/g, 'rejected: [lang]')  
+                .replace(/Detected [a-z]{3}/g, 'Detected [lang]')   
+                .replace(/\(\d+\/\d+\)/g, '(#/#)');                  
+                
+            undefinedReasons[groupKey] = (undefinedReasons[groupKey] || 0) + 1;
+
+            const textWords = testCase.text
+                .toLowerCase()
+                .replace(/[^\p{Letter}\p{Number}\s']/gu, '')
+                .split(/\s+/)
+                .filter(w => w.length > 0);
+
+            for (const word of textWords) {
+                if (!allKnownWords.has(word)) {
+                    const key = `${word} (${expected})`;
+                    missingWordCounts[key] = (missingWordCounts[key] || 0) + 1;
+                }
+            }
+
             //originalLog(`\nUNDEFINED: "${testCase.text}"`);
             //originalLog(`   Expected: ${expected}, Got: ${actual}`);
             //originalLog(`   Trace: ${traceOutput}`);
             
         } else if (!isExpectedAllowed && isActualAllowed) {
+
+            const textWords = testCase.text
+            .toLowerCase()
+            .replace(/[^\p{Letter}\p{Number}\s']/gu, '')
+            .split(/\s+/)
+            .filter(w => w.length > 0);
+
+            for (const word of textWords) {
+                if (!allKnownWords.has(word)) {
+                    const key = `${word} (${expected})`;
+                    missingWordCounts[key] = (missingWordCounts[key] || 0) + 1;
+                }
+            }
+
             slipped++;
             //originalLog(`\nSLIPPED (False Negative): "${testCase.text}"`);
             //originalLog(`   Expected: ${expected}, Got: ${actual}`);
@@ -113,6 +171,24 @@ async function runTests() {
     console.log(`Critical:  ${failed} (Allowed text removed by mistake)`);
     console.log(`Total:     ${cases.length}`);
     console.log(`Accuracy:  ${(passed / cases.length * 100).toFixed(2)}%`);
+
+    console.log(`\n--- TOP UNDEFINED REASONS ---`);
+    const sortedReasons = Object.entries(undefinedReasons)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3);
+        
+    sortedReasons.forEach(([reason, count]) => {
+        console.log(`${count.toString().padEnd(5)} | ${reason}`);
+    });
+
+    console.log(`\n--- TOP MISSED WORDS ---`);
+    const sortedWords = Object.entries(missingWordCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+    sortedWords.forEach(([wordLang, count]) => {
+        console.log(`${count.toString().padEnd(5)} | ${wordLang}`);
+    });
 }
 
 runTests();
