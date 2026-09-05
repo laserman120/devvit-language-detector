@@ -8,7 +8,7 @@ import { whitelistedWords } from '../src/helpers/word-whitelist.js';
 
 const mockSettings: Record<string, any> = {
     'STRICTNESS': ['lenient'],
-    'ALLOWED_LANGUAGES': ['deu'],
+    'ALLOWED_LANGUAGES': ['swe'],
     'CUSTOM_WHITELIST': '',
     'ACTION_ON_UNSUPPORTED_POST': ['report'],
     'ACTION_ON_UNSUPPORTED_COMMENT': ['report'],

@@ -31,12 +31,10 @@ export async function checkForUpdates(event: any, context: JobContext): Promise<
             console.log("[UpdateCheck] New version found, sending notification.");
             const currentSub = await context.reddit.getCurrentSubreddit();
             // New version found, notify mods via modmail
-            await context.reddit.modMail.createConversation({
-            subredditName: currentSub.name,
+            await context.reddit.modMail.createModNotification({
+            subredditId: currentSub.id,
             subject: 'Language Detector: App Update Available',
-            body: `A new version of the app is available!\n\n**Previous version:** ${storedVersion}\n**New version:** ${latestVersion}\n\nThe changelog can be found here: https://developers.reddit.com/apps/language-detector\n\n**To update the app please visit:** https://developers.reddit.com/r/${currentSub.name}/apps **and press "Update".**`,
-            to: null,
-            isAuthorHidden: true,
+            bodyMarkdown: `A new version of the app is available!\n\n**Previous version:** ${storedVersion}\n**New version:** ${latestVersion}\n\nThe changelog can be found here: https://developers.reddit.com/apps/language-detector\n\n**To update the app please visit:** https://developers.reddit.com/r/${currentSub.name}/apps **and press "Update".**`,
             });
         }
 

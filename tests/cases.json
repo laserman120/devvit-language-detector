@@ -1,4 +1,24 @@
 [
+  { 
+    "expected": "sv",
+    "text": "Tack så mycket för hjälpen!"
+  },
+  { 
+    "text": "Vad händer bror?", 
+    "expected": "sv" 
+  },
+  { 
+    "text": "Jag ska gå till affären för att köpa mjölk och bröd till frukost.", 
+    "expected": "sv" 
+  },
+  { 
+    "text": "Hej då!", 
+    "expected": "sv" 
+  },
+  { 
+    "text": "Det är jättebra väder idag, ska vi gå till parken?", 
+    "expected": "sv" 
+  },
   {
     "expected": "en",
     "text": "Germany and France have of course famously never fueded."
