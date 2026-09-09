@@ -8,7 +8,7 @@ import { whitelistedWords } from '../src/helpers/word-whitelist.js';
 
 const mockSettings: Record<string, any> = {
     'STRICTNESS': ['lenient'],
-    'ALLOWED_LANGUAGES': ['swe'],
+    'ALLOWED_LANGUAGES': ['eng'],
     'CUSTOM_WHITELIST': '',
     'ACTION_ON_UNSUPPORTED_POST': ['report'],
     'ACTION_ON_UNSUPPORTED_COMMENT': ['report'],
@@ -37,7 +37,6 @@ const mockContext = {
 
 
 async function runTests() {
-
     const allKnownWords = new Set<string>();
     Object.values(whitelistedWords).forEach(list => list.forEach(w => allKnownWords.add(w.toLowerCase())));
     Object.values(stopwords as Record<string, string[]>).forEach(list => list.forEach(w => allKnownWords.add(w.toLowerCase())));
@@ -65,6 +64,8 @@ async function runTests() {
     }
 
     originalLog(`Running ${cases.length} test cases...`);
+
+    const startTime = Date.now();
 
     for (let i = 0; i < cases.length; i++) {
         const testCase = cases[i];
@@ -94,7 +95,7 @@ async function runTests() {
                 const rawCode = parts[0].trim();
                 const actualLangData = iso6393.find(l => l.iso6391 === rawCode || l.iso6393 === rawCode);
                 actual = actualLangData ? actualLangData.iso6393 : rawCode;
-            } else if (traceOutput.includes('Quick Stopwords')) {
+            } else if (traceOutput.includes('Quick Stopwords') || traceOutput.includes('Quick Bigrams')) {
                 // If it passed via quick stopwords, it matches the expected allowed language
                 actual = expected;
             }
@@ -163,6 +164,10 @@ async function runTests() {
         }
     }
     
+    const endTime = Date.now();
+    const duration = ((endTime - startTime) / 1000);
+    const averageTime = (duration / cases.length).toFixed(5);
+
     console.log = originalLog;
     console.log(`\n--- TEST SUMMARY ---`);
     console.log(`Correct:   ${passed}`);
@@ -171,6 +176,9 @@ async function runTests() {
     console.log(`Critical:  ${failed} (Allowed text removed by mistake)`);
     console.log(`Total:     ${cases.length}`);
     console.log(`Accuracy:  ${(passed / cases.length * 100).toFixed(2)}%`);
+    console.log(`Duration:  ${duration.toFixed(2)} seconds`);
+    console.log(`Average:   ${averageTime} seconds per case`);
+
 
     console.log(`\n--- TOP UNDEFINED REASONS ---`);
     const sortedReasons = Object.entries(undefinedReasons)

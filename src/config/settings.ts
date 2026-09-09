@@ -212,12 +212,50 @@ export const languageSettingsGroup = {
             }
         },
         {
+            type: 'boolean' as const,
+            name: 'IGNORE_CODE_BLOCKS',
+            label: 'Ignore code blocks and inline code',
+            defaultValue: false,
+            scope: 'installation' as const,
+            helpText: 'Will, if enabled ignore code blocks and inline code. Only recommended for subreddits that use code blocks frequently for their intended purpose',
+        },
+        {
+            type: 'boolean' as const,
+            name: 'INCREASE_MIN_WORDS',
+            label: 'Increase minimum word count for detection',
+            defaultValue: false,
+            scope: 'installation' as const,
+            helpText: 'By default the system requires at least 2 words to perform a complete scan. Enabling this option will increase the minimum to 3, reducing the chance of false positives further.',
+        },
+        {
             type: 'string' as const,
             name: 'CUSTOM_WHITELIST',
             label: 'Custom Whitelisted Words (StopWords)',
             defaultValue: '',
             scope: 'installation' as const,
             helpText: 'Add custom words to the allowed languages. Separate words with commas or semicolons (e.g., Forest; Cake; Banana).',
+            onValidate: ({ value }: { value?: string }) => {
+                if (value) {
+                    if (value.length > 1000) {
+                        return 'Custom whitelist is too long. Please keep it under 1000 characters.';
+                    }
+                    const words = value.split(/[,;]+/);
+                    for (const word of words) {
+                        const trimmed = word.trim();
+                        if (trimmed.length > 0 && /\s/.test(trimmed)) {
+                            return `Invalid entry "${trimmed}". Only single words are allowed, no spaces.`;
+                        }
+                    }
+                }
+            }
+        },
+        {
+            type: 'string' as const,
+            name: 'CUSTOM_IGNORED',
+            label: 'Custom Ignored Words',
+            defaultValue: '',
+            scope: 'installation' as const,
+            helpText: 'Any words added here are completely ignored by the detection system. Separate words with commas or semicolons (e.g., Forest; Cake; Banana).',
             onValidate: ({ value }: { value?: string }) => {
                 if (value) {
                     if (value.length > 1000) {

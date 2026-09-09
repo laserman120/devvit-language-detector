@@ -13,7 +13,9 @@ export async function handleComment(event: any, context: TriggerContext) {
     if(isAuthorBlacklisted(author)) {
         return;
     }
+
+    const languageCode = event.post.languageCode || 'und'; // Default to 'und' if languageCode is not present
     const commentText = event.comment.body;
     const commentId = event.comment.id;
-    await handleDetection(commentId, context, commentText);
+    await handleDetection(commentId, context, commentText, languageCode);
 }

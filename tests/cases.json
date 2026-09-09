@@ -1,4 +1,32 @@
-[
+[ 
+  { 
+    "expected": "en",
+    "text": "With 4p 1in dlog you have a 4 stop window where no image information is lost. Dlog 2 its 7 stops. Pocket 3 dlogm it is 2.5 stops."
+  },
+  { 
+    "expected": "en",
+    "text": "Auto iso ranges in dlog2"
+  },
+  { 
+    "expected": "en",
+    "text": "cave divers"
+  },
+  { 
+    "expected": "en",
+    "text": "Uaaaaalgh ueeeeeegh"
+  },
+  { 
+    "expected": "en",
+    "text": "OP4P - Short Video - Walking My Dog - A short video of walking my dog shot on the OP4P D-Log2"
+  },
+  { 
+    "expected": "en",
+    "text": "Check the right sidebar menu: OpenPocketCine APP"
+  },
+  { 
+    "expected": "pt",
+    "text": "sons of the forest crasha do absoluto nada ,totalmente aleatorio fazia um tempo eu eu não jogava, voltei a jogar recentemente com meu amigo ,enquanto estávamos explorando ,o jogo travava do nada e fechava , sem motivo o FPS nem cai antes de travar pra piorar esta rodando normal e do nada ele trava então como posso resolver esse problema ,se necessário eu testo o que pedirem configuração Ryzen 5 3400g 16 GB ddr4 3600mhz rx550"
+  },
   { 
     "expected": "sv",
     "text": "Tack så mycket för hjälpen!"

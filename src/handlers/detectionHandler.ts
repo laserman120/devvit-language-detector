@@ -5,6 +5,7 @@ import { whitelistedWords } from '../helpers/word-whitelist.js';
 import { stripFormattingAndUrls } from '../helpers/textCleanupHelper.js';
 import { detectAll } from 'tinyld';
 import { replaceWildcards, sendRemovalNotification } from './notificationHandler.js';
+import { stopwordBigrams } from '../helpers/stopword-bigrams.js';
 
 const supportedLanguages = [
     'eng', 'cmn', 'hin', 'spa', 'fra', 'arb', 'ben', 'rus', 'por', 'urd', 
@@ -70,7 +71,7 @@ const FALLBACK_REQUIRED_DENSITY_SHORT_REJECTED = 0.40;
 
 
 
-export async function handleDetection(itemId: string, context: TriggerContext, text: string) {
+export async function handleDetection(itemId: string, context: TriggerContext, text: string, redditLangCode?: string): Promise<void> {
     const trace: string[] = [];
     const finish = (msg: string) => {
         trace.push(msg);
@@ -86,7 +87,7 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
         return finish('Already processed recently');
     }
 
-    text = stripFormattingAndUrls(text);
+    trace.push("Reddit Identified Language: " + (redditLangCode || 'und'));
 
     await context.redis.set(redisKey, 'true');
     await context.redis.expire(redisKey, 60);
@@ -96,14 +97,46 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
 
     let langCode = "und";
 
+    // Cleanup
+    const ignoreCodeBlocks = await context.settings.get<boolean>('IGNORE_CODE_BLOCKS') ?? false;
+    text = stripFormattingAndUrls(text, ignoreCodeBlocks);
+
+    const customIgnoredStr = await context.settings.get<string>('CUSTOM_IGNORED') ?? '';
+    const ignoredWords = new Set<string>();
+    if (customIgnoredStr.trim().length > 0) {
+        const customWords = customIgnoredStr
+            .split(/[,;]+/)
+            .map(w => w.trim().toLowerCase())
+            .filter(w => w.length > 0);
+            
+        customWords.forEach(w => ignoredWords.add(w));
+        
+        if (customWords.length > 0) {
+            trace.push(`Loaded ${customWords.length} ignored`);
+        }
+    }
+
+    text = text.toLowerCase();
+    for (const ignored of ignoredWords) {
+        const escaped = ignored.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`\\b${escaped}\\b`, 'g');
+
+        text = text.replace(regex, ' ');
+    }
+
+
     // Quick Stopword Check
-    const words = text.toLowerCase().replace(/[^\p{Letter}\p{Number}\s']/gu, '').split(/\s+/).filter(w => w.length > 0);
+    const words = text.toLowerCase().replace(/[^\p{Letter}\p{Number}\s']/gu, '').split(/\s+/).filter(w => w.length > 0 && !/\d/.test(w));
     const totalWords = words.length;
 
     const minWords = strictnessSetting[0] === 'lenient' ? BASE_MIN_WORDS_LENIENT : BASE_MIN_WORDS_STRICT;
+    const increaseMinWords = await context.settings.get<boolean>('INCREASE_MIN_WORDS') ?? false;
+    if(increaseMinWords) {
+        minWords + 1;
+    }
 
     // Add global whitelisted words to the allowed set
-    const allowedWords = new Set<string>(whitelistedWords.global || []);
+    const allowedWords = new Set<string>((whitelistedWords.global || []).map(w => w.toLowerCase()));
 
     // Fetch and parse the custom whitelist from settings
     const customWhitelistStr = await context.settings.get<string>('CUSTOM_WHITELIST') ?? '';
@@ -116,21 +149,21 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
         customWords.forEach(w => allowedWords.add(w));
         
         if (customWords.length > 0) {
-            trace.push(`Loaded ${customWords.length} custom whitelisted words`);
+            trace.push(`Loaded ${customWords.length} whitelisted`);
         }
     }
 
     for (const code3 of allowedLanguages) {
-        // Add whitelisted words for the specific language code
+    // Add whitelisted words for the specific language code
         if (whitelistedWords[code3]) 
         {
-            whitelistedWords[code3].forEach(w => allowedWords.add(w));
+            whitelistedWords[code3].forEach(w => allowedWords.add(w.toLowerCase()));
         }
 
         const langData = iso6393.find(l => l.iso6393 === code3);
         if (langData?.iso6391 && (stopwords as any)[langData.iso6391]) 
         {
-            (stopwords as any)[langData.iso6391].forEach((w: string) => allowedWords.add(w));
+            (stopwords as any)[langData.iso6391].forEach((w: string) => allowedWords.add(w.toLowerCase()));
         }
     }
 
@@ -149,6 +182,20 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
     }
 
     trace.push(`Stopwords [${validWordCount}/${totalWords}]`);
+
+    // Stopword-Bigram check, if the text includes a bigram from the allowed languages, we can pass it immediately.
+    if (totalWords <= QUICK_CHECK_SHORT_TEXT_MAX_WORDS) {
+        const joinedText = words.join(' ');
+        for (const code3 of allowedLanguages) {
+            if (stopwordBigrams[code3]) {
+                for (const bigram of stopwordBigrams[code3]) {
+                    if (joinedText.includes(bigram)) {
+                        return finish(`Passed Quick Bigrams [${code3}: "${bigram}"]`);
+                    }
+                }
+            }
+        }
+    }
 
     // Script Analysis 
     const textLetters = [...text].filter(char => /\p{Letter}/u.test(char));
@@ -355,14 +402,14 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
     {
         await context.reddit.filter(item.id, { reason: reason });
         finish(`Action: Filtered (${langCode})`);
-        await sendRemovalNotification(context, item, "filter", langName);
+        await sendRemovalNotification(context, item, "filter", langName, trace.join(' -> '));
     } 
     else if (action === 'remove') 
     {
         await context.reddit.remove(item.id, false);
         await context.reddit.addRemovalNote({ itemIds: [item.id], reasonId: "", modNote: reason });
         finish(`Action: Removed (${langCode})`);
-        await sendRemovalNotification(context, item, "removal", langName);
+        await sendRemovalNotification(context, item, "removal", langName, trace.join(' -> '));
     }
 }
 

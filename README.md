@@ -76,6 +76,14 @@ Any reported false positives are added to this list.
 ---
 
 ## Changelog:
+- 0.00.23
+    - Improved detection accuracy overall.
+    - Added setting for ignored words.
+    - Added setting to ignore code blocks and inline code.
+    - Added setting to increase minimum word count for a complete scan
+        - By default the system will only let tinyld perform a check if 2 or more words are present.
+        - To reduce the chance for false positives further this setting can be enabled.
+        
 - 0.00.22
     - Improved detection accuracy with a focus on short text.
 

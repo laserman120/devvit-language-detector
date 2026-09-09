@@ -13,7 +13,9 @@ export async function handlePost(event: any, context: TriggerContext) {
     if(isAuthorBlacklisted(author)) {
         return;
     }
+
+    const languageCode = event.post.languageCode || 'und'; // Default to 'und' if languageCode is not present
     const postText = event.post.title + " " + (event.post.selftext || "");
     const postId = event.post.id;
-    await handleDetection(postId, context, postText);
+    await handleDetection(postId, context, postText, languageCode);
 }

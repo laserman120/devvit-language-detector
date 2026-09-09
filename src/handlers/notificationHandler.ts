@@ -1,7 +1,7 @@
 import { Comment, Post, TriggerContext } from "@devvit/public-api";
 
 
-export async function sendRemovalNotification(context: TriggerContext, item: Post | Comment, type: String, langName: string) {
+export async function sendRemovalNotification(context: TriggerContext, item: Post | Comment, type: String, langName: string, trace: string) {
     let notifyAuthor;
     let rawMessage;
     if(type === "filter") {
@@ -17,17 +17,16 @@ export async function sendRemovalNotification(context: TriggerContext, item: Pos
     const authorName = item.authorName;
     const subredditName = item.subredditName;
     const itemType = item.id.startsWith("t3_") ? 'post' : 'comment';
-    const permaLink = item.permalink;
     
     if(!rawMessage){
         return;
     }
-    const message = await replaceWildcards(rawMessage, item);
+    const message = await replaceWildcards(rawMessage, item, langName, trace);
 
     const notificationMethod = await context.settings.get<string[]>('NOTIFICATION_METHOD') ?? ['comment'];
     if (notificationMethod[0] === 'modmail') {
         const modmailSubjectRaw = await context.settings.get<string>('MODMAIL_SUBJECT') ?? `Notice regarding your recent ${itemType} in r/${subredditName}`;
-        const modmailSubject = await replaceWildcards(modmailSubjectRaw, item);
+        const modmailSubject = await replaceWildcards(modmailSubjectRaw, item, langName, trace);
         await context.reddit.modMail.createConversation({
             subredditName: subredditName,
             subject: modmailSubject,
@@ -46,7 +45,7 @@ export async function sendRemovalNotification(context: TriggerContext, item: Pos
     }
 }
 
-export async function replaceWildcards(message: string, item: Post | Comment, langName?: string): Promise<string> {
+export async function replaceWildcards(message: string, item: Post | Comment, langName?: string, trace?: string): Promise<string> {
     const authorName = item.authorName;
     const subredditName = item.subredditName;
     const itemType = item.id.startsWith("t3_") ? 'post' : 'comment';
@@ -54,10 +53,16 @@ export async function replaceWildcards(message: string, item: Post | Comment, la
 
 
     let replacedMessage = message;
-    replacedMessage = message.replace(/{{type}}/gi, itemType)
+    replacedMessage = message
+        .replace(/{{type}}/gi, itemType)
+        .replace(/{{kind}}/gi, itemType)
         .replace(/{{subredditName}}/gi, subredditName)
         .replace(/{{UserName}}/gi, authorName)
         .replace(/{{PermaLink}}/gi, permaLink);
+    
+    if(trace) {
+        replacedMessage = replacedMessage.replace(/{{trace}}/gi, trace);
+    } 
 
     if(langName){
         replacedMessage = replacedMessage.replace(/{{langName}}/gi, langName);
