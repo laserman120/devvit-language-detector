@@ -11,7 +11,8 @@
       "onPostUpdate",
       "onCommentUpdate",
       "onAppInstall",
-      "onAppUpgrade"
+      "onAppUpgrade",
+      "onModAction"
     ]
   },
   "permissions": {

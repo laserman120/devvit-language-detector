@@ -5,6 +5,10 @@ export function isAuthorBlacklisted(author: string): boolean
     if(author === AppUserId) {
         return true; 
     }
+    
+    if(author === "[deleted]") {
+        return true;
+    }
 
     return false
 }

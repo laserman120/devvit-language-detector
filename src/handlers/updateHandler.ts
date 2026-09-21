@@ -4,6 +4,12 @@ const devSubreddit = 'language_detector_dev';
 
 export async function checkForUpdates(event: any, context: JobContext): Promise<void> {
     try{ 
+        const checkdisabled = await context.settings.get<boolean>('IGNORE_UPDATE_NOTIFICATIONS');
+        if(checkdisabled) {
+            console.log("[UpdateCheck] Update check is disabled in settings.");
+            return;
+        }
+        
         console.log("[UpdateCheck] Checking for updates...");
         const isV2 = await context.reddit.isWikiV2Enabled(devSubreddit);
         let wikiPage;

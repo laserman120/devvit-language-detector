@@ -1,6 +1,26 @@
 [ 
   { 
     "expected": "en",
+    "text": "Ok then, here's the first one. Shot on Pocket 4, 1x, D-LOG (CST applied and color corrected on Davinci Resolve), 60 FPS slowed down to 24. Shot at Masjid Negara, Kuala Lumpur."
+  },
+  { 
+    "expected": "en",
+    "text": "The idea came to me while editing the photos from a trip, but it would be interesting to force the situation by using similar focal lengths. I might give it a try — making a note of it."
+  },
+  { 
+    "expected": "en",
+    "text": "To my wallet and my GAS."
+  },
+  { 
+    "expected": "en",
+    "text": "Cams Mackey Rambler for P4 + Triune Drive LUT + Resolve FilmLook node."
+  },
+  { 
+    "expected": "en",
+    "text": "Beautiful pic."
+  },
+  { 
+    "expected": "en",
     "text": "With 4p 1in dlog you have a 4 stop window where no image information is lost. Dlog 2 its 7 stops. Pocket 3 dlogm it is 2.5 stops."
   },
   { 

@@ -33,7 +33,7 @@ export const whitelistedWords: Record<string, string[]> = {
         'agree', 'wow', 'yay', 'dude', 'guy', 'girl', 'shit', 
         'damn', 'fuck', 'bro', 'worst', 'stuff', 'time', 'life', 'people', 
         'person', 'day', 'feel', 'leave', 'subreddit', 'mods', 'mod', 
-        'post', 'comment',
+        'post', 'comment', "botanical", "garden", "lens", "kit", "homemade", "recipe", "taken",
         'downvote', 'karma', 'thread', 'link', 'source', 'edit', 'based', 
         'cringe', 'oof', 'yikes', 'pog', 'poggers', 'pepe', 'meta', 'nsfw', 
         'sfw', 'fam', 'homie', 'giga', 'sigma', 'chad', 'simp', 'flex', 
@@ -41,8 +41,9 @@ export const whitelistedWords: Record<string, string[]> = {
         'lit', 'lowkey', 'highkey', 'Vibe', 'vibes', 'mood', 'periodt', 
         'rn', 'asap', 'gimme', 'lemme', 'dunno', 'gotcha', 'folks', 
         "folk", "songs", "song", "hate", "cave", "diver", "divers",
-        "fake", "real", "true", "false", "wrong",  
-        "question", "stopped", "girls", "walking"
+        "fake", "real", "true", "false", "wrong", "pic", "picture",
+        "question", "stopped", "girls", "walking", "hit", "amazing", "amazed", "amazingly",
+        "cam", "cams", "drive", "lut", "resolve", "node",
     ],
     spa: [
         'jaja', 'jajaja', 'gracias', 'hola', 'wey', 'we', 

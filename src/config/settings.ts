@@ -198,13 +198,13 @@ export const languageSettingsGroup = {
             name: 'STRICTNESS',
             label: 'Detection Strictness',
             options: [
-                { label: 'Strict', value: 'strict' },
-                { label: 'Lenient', value: 'lenient' }
+                { label: 'Aggressive Filtering', value: 'strict' },
+                { label: 'High Accuracy (Recommended)', value: 'lenient' }
             ],
             defaultValue: ['lenient'],
             multiSelect: false,
             scope: 'installation' as const,
-            helpText: 'Lenient (Default) tries to avoid false positives. Strict is more likely to create false positives but will more reliably catch non-permitted languages.',
+            helpText: 'High Accuracy is recommended. Aggressive Filtering may result in false positives, but can catch more non-permitted languages.',
             onValidate: ({ value }: { value?: string[] }) => {
                 if (!value || value.length === 0) {
                     return 'You must select a strictness level. Lenient is recommended to avoid false positives.';
@@ -270,6 +270,30 @@ export const languageSettingsGroup = {
                     }
                 }
             }
+        },
+    ]
+};
+
+export const miscSettingsGroup = {
+    type: 'group' as const,
+    label: 'General Settings',
+    helpText: 'Configure miscellaneous settings for app',
+    fields: [
+        {
+            type: 'boolean' as const,
+            name: 'IGNORE_UPDATE_NOTIFICATIONS',
+            label: 'Ignore Update Notifications',
+            defaultValue: false,
+            scope: 'installation' as const,
+            helpText: 'If enabled, the app will not notify moderators of new updates. It is recommended to keep the app up to date to ensure high accuracy.',
+        },
+        {
+            type: 'boolean' as const,
+            name: 'DATA_COLLECTION',
+            label: 'Help Improve the App (False Positive Collection)',
+            defaultValue: false,
+            scope: 'installation' as const,
+            helpText: 'Please read the information regarding this system in the apps directory page before enabling! If enabled, the app will keep track of detections which were approved later on. This data will be completely anonymized and then sent to the developer for analysis.',
         },
     ]
 };

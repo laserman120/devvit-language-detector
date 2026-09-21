@@ -30,7 +30,8 @@ const mockContext = {
         report: async () => {},
         filter: async () => {},
         remove: async () => {},
-        addRemovalNote: async () => {}
+        addRemovalNote: async () => {},
+        getCurrentSubreddit: async () => (undefined),
     }
 } as unknown as TriggerContext;
 

@@ -66,6 +66,11 @@ Safety Nets: Multiple fallback layers ensure that ambiguous or short text isn't 
 By providing feedback on false positives, incorrectly identified languages and similar occurences we can make adjustments to improve the detection in the future.
 If you want to send feedback you can always contact me [here](https://www.reddit.com/message/compose/?to=_GLAD0S_)
 
+### Automated False Positive Detection
+The app has an optional setting to allow false positive detection.
+
+Before enabling this system it is **highly recommended** to read this: [False Positive Detection](https://github.com/laserman120/devvit-language-detector/wiki/False-Positive-Detection-Information)
+
 ---
 
 ## Benchmarking:
@@ -83,7 +88,7 @@ Any reported false positives are added to this list.
     - Added setting to increase minimum word count for a complete scan
         - By default the system will only let tinyld perform a check if 2 or more words are present.
         - To reduce the chance for false positives further this setting can be enabled.
-        
+
 - 0.00.22
     - Improved detection accuracy with a focus on short text.
 

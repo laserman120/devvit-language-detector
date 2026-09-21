@@ -6,6 +6,7 @@ import { stripFormattingAndUrls } from '../helpers/textCleanupHelper.js';
 import { detectAll } from 'tinyld';
 import { replaceWildcards, sendRemovalNotification } from './notificationHandler.js';
 import { stopwordBigrams } from '../helpers/stopword-bigrams.js';
+import { actionedKey } from './dataHandler.js';
 
 const supportedLanguages = [
     'eng', 'cmn', 'hin', 'spa', 'fra', 'arb', 'ben', 'rus', 'por', 'urd', 
@@ -69,14 +70,15 @@ const FALLBACK_REQUIRED_DENSITY_LONG_REJECTED = 0.35;
 const FALLBACK_REQUIRED_DENSITY_SHORT_ALLOWED = 0.38;
 const FALLBACK_REQUIRED_DENSITY_SHORT_REJECTED = 0.40; 
 
-
-
 export async function handleDetection(itemId: string, context: TriggerContext, text: string, redditLangCode?: string): Promise<void> {
     const trace: string[] = [];
     const finish = (msg: string) => {
         trace.push(msg);
         console.log(`[${itemId}] ${trace.join(' -> ')}`);
     };
+
+    // RedisKey for data collection
+    const dataCollectionEnabled = await context.settings.get<boolean>('DATA_COLLECTION') ?? false;
 
     // Redis Deduplication Check
     const redisKey = `processed:${itemId}`;
@@ -124,15 +126,16 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
         text = text.replace(regex, ' ');
     }
 
+    text = text.split(/\s+/).filter(w => !/\d/.test(w)).join(' ');
 
     // Quick Stopword Check
-    const words = text.toLowerCase().replace(/[^\p{Letter}\p{Number}\s']/gu, '').split(/\s+/).filter(w => w.length > 0 && !/\d/.test(w));
+    const words = text.toLowerCase().replace(/[^\p{Letter}\p{Number}\s']/gu, '').split(/\s+/).filter(w => w.length > 0);
     const totalWords = words.length;
 
-    const minWords = strictnessSetting[0] === 'lenient' ? BASE_MIN_WORDS_LENIENT : BASE_MIN_WORDS_STRICT;
+    let minWords = strictnessSetting[0] === 'lenient' ? BASE_MIN_WORDS_LENIENT : BASE_MIN_WORDS_STRICT;
     const increaseMinWords = await context.settings.get<boolean>('INCREASE_MIN_WORDS') ?? false;
     if(increaseMinWords) {
-        minWords + 1;
+        minWords += 1;
     }
 
     // Add global whitelisted words to the allowed set
@@ -185,11 +188,11 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
 
     // Stopword-Bigram check, if the text includes a bigram from the allowed languages, we can pass it immediately.
     if (totalWords <= QUICK_CHECK_SHORT_TEXT_MAX_WORDS) {
-        const joinedText = words.join(' ');
+        const joinedText = ` ${words.join(' ')} `;
         for (const code3 of allowedLanguages) {
             if (stopwordBigrams[code3]) {
                 for (const bigram of stopwordBigrams[code3]) {
-                    if (joinedText.includes(bigram)) {
+                    if (joinedText.includes(` ${bigram} `)) {
                         return finish(`Passed Quick Bigrams [${code3}: "${bigram}"]`);
                     }
                 }
@@ -380,7 +383,8 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
     }
 
     // Check if already removed.
-    if(item.isRemoved())
+    const isRemoved = await checkIfRemoved(item, itemId, context)
+    if(isRemoved)
     {
         return finish(`Skipped: Already removed`);
     }
@@ -392,7 +396,6 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
     const action = actionSetting[0];
     const rawReason = await context.settings.get<string>('ACTION_REASON') ?? 'Language not allowed: {{LangName}}';
     const reason = await replaceWildcards(rawReason, item, langName)
-
     if (action === 'report') 
     {
         await context.reddit.report(item, { reason: reason });
@@ -411,5 +414,41 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
         finish(`Action: Removed (${langCode})`);
         await sendRemovalNotification(context, item, "removal", langName, trace.join(' -> '));
     }
+
+    // Data Collection
+    if (dataCollectionEnabled) {
+        const redisKey = `${actionedKey}${item.id}`;
+        await context.redis.set(redisKey, 'true');
+        await context.redis.expire(redisKey, 604800); // 7 days
+        console.log("[Data Collection] Logged flagged item to Redis for data collection: " + redisKey);
+    }
 }
 
+async function checkIfRemoved(item: Post | Comment, itemId: string, context: TriggerContext): Promise<boolean> {
+    let isPost = false;
+    if(itemId.startsWith("t3_")){
+        isPost = true;
+    }
+
+    if (isPost) {
+        const post = item as Post;
+        if(post.removedByCategory || post.isRemoved()) {
+            return true;
+        }
+    } else {
+        // Its a comment check for removal state through modlog
+        const subreddit = await context.reddit.getCurrentSubreddit();
+        if(!subreddit) {
+            return false;
+        }
+        const modlog = await context.reddit.getModerationLog({ subredditName: subreddit.name, limit: 100, type: "removecomment" }).all();
+
+        for (const entry of modlog) {
+            if(entry.target && entry.target.id === itemId) {
+                return true;
+            }
+        }
+    }
+    
+    return false;
+}
