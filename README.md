@@ -81,6 +81,13 @@ Any reported false positives are added to this list.
 ---
 
 ## Changelog:
+- 0.00.24
+    - Implemented setting to mute update notifications.
+    - Implemented setting to automatically detect false positives (Opt-In only)
+    - Renamed the Lenient and Strict settings for more clarity.
+    - Improved detection accuracy.
+    - Improved text pre-filtering to better exclude model numbers.
+
 - 0.00.23
     - Improved detection accuracy overall.
     - Added setting for ignored words.

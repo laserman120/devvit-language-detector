@@ -43,7 +43,7 @@ export const whitelistedWords: Record<string, string[]> = {
         "folk", "songs", "song", "hate", "cave", "diver", "divers",
         "fake", "real", "true", "false", "wrong", "pic", "picture",
         "question", "stopped", "girls", "walking", "hit", "amazing", "amazed", "amazingly",
-        "cam", "cams", "drive", "lut", "resolve", "node",
+        "cam", "cams", "drive", "lut", "resolve", "node", "peak", "sneak"
     ],
     spa: [
         'jaja', 'jajaja', 'gracias', 'hola', 'wey', 'we', 

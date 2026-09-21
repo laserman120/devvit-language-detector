@@ -80,8 +80,6 @@ Devvit.addTrigger({
         });
         console.log(`[Setup] Scheduled weekly report job with ID: ${weeklyReportJobId}`);
 
-        createWeeklyReport(_event, context);
-
         } catch (error) {
           console.error(`[Setup] Error during job setup: ${error}`);
         }
