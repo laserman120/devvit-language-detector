@@ -14,7 +14,7 @@ export async function handleComment(event: any, context: TriggerContext) {
         return;
     }
 
-    const languageCode = event.post.languageCode || 'und'; // Default to 'und' if languageCode is not present
+    const languageCode = event.comment.languageCode || 'und'; // Default to 'und' if languageCode is not present
     const commentText = event.comment.body;
     const commentId = event.comment.id;
     await handleDetection(commentId, context, commentText, languageCode);

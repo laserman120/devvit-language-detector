@@ -40,12 +40,32 @@ Automated language detection is a complex statistical challenge and is never 100
         - {{LangName}} - The written out name of the detected language.
 
 - The App has two detection modes:
-    - Lenient (Recommended) - Tries to avoid false positives but could lead to missed detections.
-    - Strict - More likely to detect uses of disallowed languages but risks additional false positives.
+    - High Accuracy (Recommended) - Tries to avoid false positives but could lead to missed detections.
+    - Aggressive Filtering - More likely to detect uses of disallowed languages but risks additional false positives.
 
-- The Custom Whitelisted Words can be adjusted to decrease false positives.
+- Filter edits of flagged items:
+    - This setting will keep track of items which were previously removed or filtered.
+    - If the author edits the comment and is now in an allowed language, this system will filter it again.
+    - That way the post or comment appears in the mod queue to be reviewed again.
+
+- Ignore code blocks and inline code:
+    - This will completely ignore code blocks as well as inline code in posts or comments.
+    - For subreddits which have a focus on coding, this setting can be used to reduce false positives.
+
+- Increase minimum word count for detection:
+    - If you encounter a lot of false positives on very short comments, this setting can be enabled.
+    - Very short text is only partially scanned for very obvious language identifiers. 
+    - This setting will increase the amount of words required to perform a complete scan.
+
+- Custom Whitelisted Words:
     - Any words added to the list will be treated as part of the allowed languages, increasing the chance of correct detection.
     - It is recommended to add words to this list which are commonly used in your community.
+    - This is primarily meant for words already in the allowed language, but uncommon in average conversations.
+
+- Custom Ignored Words:
+    - Words added to this list will be completely ignored by the system. 
+    - Unlike whitelisted words they are completely removed from the text before scanning.
+    - If your subreddit commonly uses words from **another language** these should be added here.
 
 ---
 
@@ -81,12 +101,16 @@ Any reported false positives are added to this list.
 ---
 
 ## Changelog:
-- 0.00.24
+- 0.00.27
+    - The app will no longer take action on moderator posts/comments.
+        - This can be reenabled in the settings.
+- 0.00.26
     - Implemented setting to mute update notifications.
     - Implemented setting to automatically detect false positives (Opt-In only)
     - Renamed the Lenient and Strict settings for more clarity.
     - Improved detection accuracy.
     - Improved text pre-filtering to better exclude model numbers.
+    - Improved detection of already removed content, preventing it from actioning already removed items.
 
 - 0.00.23
     - Improved detection accuracy overall.

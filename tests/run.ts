@@ -12,7 +12,8 @@ const mockSettings: Record<string, any> = {
     'CUSTOM_WHITELIST': '',
     'ACTION_ON_UNSUPPORTED_POST': ['report'],
     'ACTION_ON_UNSUPPORTED_COMMENT': ['report'],
-    'ACTION_REASON': 'Language not allowed: {{LangName}}'
+    'ACTION_REASON': 'Language not allowed: {{LangName}}',
+    'SCAN_MODERATORS': true
 };
 
 const mockContext = {

@@ -39,10 +39,11 @@ const SCRIPT_REQUIRED_MATCH_STRICT = 0.30; // Minimum percentage of characters m
 // TinyLd Settings & Safety Nets
 // TinyLd is only used if enough text is present. Safety net is used to prevent false positives on short texts. Rejection favored over mistakes.
 const TINYLD_MIN_CHAR_LENGTH = 15; // Minimum text length for language detection
-const TINYLD_REQUIRED_CONFIDENCE_STRICT = 0.1; // Minimum confidence for strict mode
+const TINYLD_REQUIRED_CONFIDENCE_STRICT = 0.35; // Minimum confidence for strict mode
 const TINYLD_REQUIRED_CONFIDENCE_LENIENT = 0.55; // Minimum confidence for lenient mode
 const TINYLD_LENIENT_TOP_RESULTS_TO_CHECK = 3; // Number of top results to check for lenient mode
 const TINYLD_MIN_SCORE_FOR_ALLOWED_MATCH = 0.20; // Minimum score for an allowed language to be accepted from top results
+const TINYLD_BLACKLIST = ['lat', 'vol', 'gle', 'epo', 'ido', 'ina', 'ile', 'san', 'jbo'];
 
 // TinyLD Safety Net Settings
 const SAFETY_NET_REVOKE_MIN_WORDS = 5; // Minimum word count for the safety net to apply
@@ -70,11 +71,12 @@ const FALLBACK_REQUIRED_DENSITY_LONG_REJECTED = 0.35;
 const FALLBACK_REQUIRED_DENSITY_SHORT_ALLOWED = 0.38;
 const FALLBACK_REQUIRED_DENSITY_SHORT_REJECTED = 0.40; 
 
-export async function handleDetection(itemId: string, context: TriggerContext, text: string, redditLangCode?: string): Promise<void> {
+export async function handleDetection(itemId: string, context: TriggerContext, text: string, redditLangCode?: string, takeAction: boolean = true): Promise<string> {
     const trace: string[] = [];
-    const finish = (msg: string) => {
+    const finish = (msg: string, returnCode: string = 'und') => {
         trace.push(msg);
         console.log(`[${itemId}] ${trace.join(' -> ')}`);
+        return returnCode;
     };
 
     // RedisKey for data collection
@@ -84,17 +86,18 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
     const redisKey = `processed:${itemId}`;
     const alreadyProcessed = await context.redis.get(redisKey);
     
-    if (alreadyProcessed) 
-    {
+    if(takeAction && alreadyProcessed){
         return finish('Already processed recently');
     }
 
-    trace.push("Reddit Identified Language: " + (redditLangCode || 'und'));
+    trace.push("Original: " + text);
 
-    await context.redis.set(redisKey, 'true');
-    await context.redis.expire(redisKey, 60);
+    if (takeAction) {
+        await context.redis.set(redisKey, 'true');
+        await context.redis.expire(redisKey, 60);
+    }
 
-    const strictnessSetting = await context.settings.get<string[]>('STRICTNESS') ?? ['strict'];
+    const strictnessSetting = await context.settings.get<string[]>('STRICTNESS') ?? ['lenient'];
     const allowedLanguages = await context.settings.get<string[]>('ALLOWED_LANGUAGES') || ['eng'];
 
     let langCode = "und";
@@ -128,8 +131,10 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
 
     text = text.split(/\s+/).filter(w => !/\d/.test(w)).join(' ');
 
-    // Quick Stopword Check
     const words = text.toLowerCase().replace(/[^\p{Letter}\p{Number}\s']/gu, '').split(/\s+/).filter(w => w.length > 0);
+
+    trace.push(`Cleaned: ` + words.join(' '));
+
     const totalWords = words.length;
 
     let minWords = strictnessSetting[0] === 'lenient' ? BASE_MIN_WORDS_LENIENT : BASE_MIN_WORDS_STRICT;
@@ -170,6 +175,10 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
         }
     }
 
+    if(allowedWords.size === 0) {
+        return finish("Skipped: Allowed Words list is empty! Critical!")
+    }
+
     let validWordCount = 0;
     for (const word of words) {
         if (allowedWords.has(word)){
@@ -181,7 +190,7 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
     const quickThreshold = totalWords <= QUICK_CHECK_SHORT_TEXT_MAX_WORDS ? QUICK_CHECK_REQUIRED_DENSITY_SHORT : QUICK_CHECK_REQUIRED_DENSITY_MEDIUM;
 
     if (totalWords > 0 && (validWordCount / totalWords) >= quickThreshold) {
-        return finish(`Passed Quick Stopwords [${validWordCount}/${totalWords}]`);
+        return finish(`Passed Quick Stopwords [${validWordCount}/${totalWords}]`, allowedLanguages[0] || 'und');
     }
 
     trace.push(`Stopwords [${validWordCount}/${totalWords}]`);
@@ -193,7 +202,7 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
             if (stopwordBigrams[code3]) {
                 for (const bigram of stopwordBigrams[code3]) {
                     if (joinedText.includes(` ${bigram} `)) {
-                        return finish(`Passed Quick Bigrams [${code3}: "${bigram}"]`);
+                        return finish(`Passed Quick Bigrams [${code3}: "${bigram}"]`, allowedLanguages[0] || 'und');
                     }
                 }
             }
@@ -238,7 +247,7 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
 
     if (scriptFound) {
         if (allowedLanguages.includes(langCode)) {
-            return finish(`Passed: Script check allowed (${langCode})`);
+            return finish(`Passed: Script check allowed (${langCode})`, allowedLanguages[0] || 'und');
         }
         trace.push(`Script check rejected: ${langCode}`);
     } 
@@ -261,7 +270,7 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
             const results = rawResults.map(r => {
                 const langData = iso6393.find(l => l.iso6391 === r.lang || l.iso6393 === r.lang);
                 return { code: langData ? langData.iso6393 : 'und', score: r.accuracy };
-            }).filter(r => r.code !== 'und');
+            }).filter(r => r.code !== 'und' && !TINYLD_BLACKLIST.includes(r.code));
 
             if (results.length > 0 && results[0].score >= minConfidence) {
                 tinyldSuccess = true;
@@ -278,7 +287,7 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
                         trace.push(`tinyld matched allowed (${allowedMatch.code}:${allowedMatch.score.toFixed(3)}) but overridden due to low stopword density`);
                         tinyldSuccess = false; // Force fallback
                     } else {
-                        return finish(`Passed: tinyld matched allowed lang in top ${numToCheck} (${topResultsString})`);
+                        return finish(`Passed: tinyld matched allowed lang in top ${numToCheck} (${topResultsString})`, allowedMatch.code);
                     }
                 } else {
                     // Scale the required density based on tinyld's confidence in the foreign language.
@@ -290,7 +299,7 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
                     else if (isHighlyConfident) requiredDensity = SAFETY_NET_OVERRIDE_REQ_DENSITY_HIGH;
 
                     if (strictnessSetting[0] === 'lenient' && totalWords <= SAFETY_NET_OVERRIDE_MAX_WORDS && (validWordCount / totalWords) >= requiredDensity) {
-                        return finish(`Passed (Safety Net): tinyld rejected (${topResultsString}) but found ${validWordCount}/${totalWords} allowed stopwords`);
+                        return finish(`Passed (Safety Net): tinyld rejected (${topResultsString}) but found ${validWordCount}/${totalWords} allowed stopwords`, allowedLanguages[0] || 'und');
                     }
                     trace.push(`tinyld rejected: Top results (${topResultsString})`);
                 }
@@ -351,7 +360,7 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
                 if (totalWords > 0 && (bestMatch / totalWords) >= fallbackThreshold) {
                     langCode = bestLang;
                     trace.push(`Mode: Dictionary Fallback -> Detected ${langCode} (${bestMatch}/${totalWords})`);
-                    if (allowedLanguages.includes(langCode)) return finish(`Passed: Dictionary fallback allowed (${langCode})`);
+                    if (allowedLanguages.includes(langCode)) return finish(`Passed: Dictionary fallback allowed (${langCode})`, langCode);
                     trace.push(`Dictionary Fallback rejected: ${langCode}`);
                 } else {
                     return finish(`Skipped: Language could not be determined (${bestMatch}/${totalWords} words matched)`);
@@ -361,6 +370,10 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
 
     if(langCode === "und"){
         return finish(`Skipped: Language could not be determined`);
+    }
+
+    if (!takeAction) {
+        return finish(`Action Skipped (takeAction=false) (${langCode})`, langCode);
     }
 
     let item;
@@ -380,6 +393,17 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
     else 
     {
         return finish(`Skipped: Neither post nor comment`);
+    }
+
+    const scanModerators = await context.settings.get<boolean>('SCAN_MODERATORS') ?? false;
+
+    if(!scanModerators) {
+        const subreddit = await context.reddit.getCurrentSubreddit();
+        const moderators = await context.reddit.getModerators({ subredditName: subreddit.name, username: item.authorName}).all();
+    
+        if(moderators.length === 1){
+            return finish(`Skipped: Author is a moderator`);
+        }
     }
 
     // Check if already removed.
@@ -422,6 +446,16 @@ export async function handleDetection(itemId: string, context: TriggerContext, t
         await context.redis.expire(redisKey, 604800); // 7 days
         console.log("[Data Collection] Logged flagged item to Redis for data collection: " + redisKey);
     }
+
+    const editChecksEnabled = await context.settings.get<boolean>('REPORT_EDITS') ?? false;
+    if(editChecksEnabled) {
+        const redisKey = `actioned:${item.id}`;
+        await context.redis.set(redisKey, 'true');
+        await context.redis.expire(redisKey, 43200); // 12 hours
+        console.log("[EditChecks] Logged flagged item to Redis for edit checks: " + redisKey);
+    }
+
+    return langCode;
 }
 
 async function checkIfRemoved(item: Post | Comment, itemId: string, context: TriggerContext): Promise<boolean> {

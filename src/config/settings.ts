@@ -207,9 +207,17 @@ export const languageSettingsGroup = {
             helpText: 'High Accuracy is recommended. Aggressive Filtering may result in false positives, but can catch more non-permitted languages.',
             onValidate: ({ value }: { value?: string[] }) => {
                 if (!value || value.length === 0) {
-                    return 'You must select a strictness level. Lenient is recommended to avoid false positives.';
+                    return 'You must select a strictness level. High Accuracy is recommended to avoid false positives.';
                 }
             }
+        },
+        {
+            type: 'boolean' as const,
+            name: 'REPORT_EDITS',
+            label: 'Filter edits of flagged items',
+            defaultValue: false,
+            scope: 'installation' as const,
+            helpText: 'When enabled this setting will filter items when they are edited after being flagged and are now detected as allowed.\nThis is only enabled for removed or filtered items.',
         },
         {
             type: 'boolean' as const,
@@ -293,7 +301,15 @@ export const miscSettingsGroup = {
             label: 'Help Improve the App (False Positive Collection)',
             defaultValue: false,
             scope: 'installation' as const,
-            helpText: 'Please read the information regarding this system in the apps directory page before enabling! If enabled, the app will keep track of detections which were approved later on. This data will be completely anonymized and then sent to the developer for analysis.',
+            helpText: 'Please read the information regarding this system in the apps directory page before enabling!\nIf enabled, the app will keep track of detections which were approved later on.\nThis data will be completely anonymized and then sent to the developer for analysis.',
+        },
+        {
+            type: 'boolean' as const,
+            name: 'SCAN_MODERATORS',
+            label: 'Scan Moderator Posts and Comments',
+            defaultValue: false,
+            scope: 'installation' as const,
+            helpText: 'If enabled, the app will also scan and potentially take action on moderator posts or comments.',
         },
     ]
 };

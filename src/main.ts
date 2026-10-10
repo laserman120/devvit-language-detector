@@ -4,6 +4,7 @@ import { handleComment } from "./handlers/commentHandler.js";
 import { languageDetectionGroup, languageSettingsGroup, notificationSettingsGroup, miscSettingsGroup } from "./config/settings.js";
 import { checkForUpdates } from "./handlers/updateHandler.js";
 import { createWeeklyReport, handleApproval } from "./handlers/dataHandler.js";
+import { handleEdit } from "./handlers/editHandler.js";
 
 Devvit.addSettings([
   languageDetectionGroup,
@@ -23,6 +24,16 @@ Devvit.addTrigger({
 });
 
 Devvit.addTrigger({
+  event: 'PostUpdate',
+  onEvent: async (event, context) => {
+      if (event.post && context) {
+        await new Promise(resolve => setTimeout(resolve, 4000));
+        handleEdit(event, context, true);
+      }
+  },
+});
+
+Devvit.addTrigger({
   event: 'CommentSubmit',
   onEvent: async (event, context) => {
       if (event.comment && context) {
@@ -31,6 +42,17 @@ Devvit.addTrigger({
       }
   },
 });
+
+Devvit.addTrigger({
+  event: 'CommentUpdate',
+  onEvent: async (event, context) => {
+      if (event.comment && context) {
+        await new Promise(resolve => setTimeout(resolve, 4000));
+        handleEdit(event, context, false);
+      }
+  },
+});
+
 
 Devvit.addTrigger({
   event: 'ModAction',

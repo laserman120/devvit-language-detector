@@ -1,5 +1,10 @@
 import { Devvit, TriggerContext, Post, Comment, JobContext } from "@devvit/public-api";
 
+/*
+This system is designed to collect false positives. This system is opt-in only and will only collect data if the setting is enabled.
+The system only collects the text itself, no other data is collected in any way.
+*/
+
 export const actionedKey = "flagged:";
 export const approvedKey = "false_positives";
 
@@ -15,7 +20,6 @@ export async function handleApproval(event: any, context: TriggerContext): Promi
     const redisKey = `${actionedKey}${itemId}`;
     const wasActioned = await context.redis.get(redisKey);
     if(!wasActioned) {
-        console.log(`[${itemId}] Item was not previously actioned by the system. No further action taken.`);
         return;
     }
 
@@ -87,6 +91,7 @@ export async function createWeeklyReport(event: any, context: JobContext): Promi
 
         // Fetch allowed languages
         const allowedLanguages = await context.settings.get<string[]>('ALLOWED_LANGUAGES') ?? [];
+        const strictness = await context.settings.get<string[]>('STRICTNESS') ?? ['lenient'];
 
         if (validTexts.length === 0) {
             await context.redis.del(approvedKey);
@@ -94,22 +99,33 @@ export async function createWeeklyReport(event: any, context: JobContext): Promi
             return;
         }
 
-        const header = "Allowed Languages: " + allowedLanguages.join(", ") + "\n\n";
+        const header = `Allowed Languages: ${allowedLanguages.join(", ")}\nStrictness: ${strictness[0]}\n\n`;
+        let allowedLanguage = "";
+        if(allowedLanguages.length === 1) {
+            allowedLanguage = allowedLanguages[0];
+        }
         const chunks: string[] = [];
-        let currentChunk = header;
+        let currentObjects: { expected: string, text: string }[] = [];
+        let currentLength = header.length + 15; // Overhead for markdown and array syntax
 
         for (const text of validTexts) {
-            const entry = `- ${text}\n\n`;
-            // 9500 to safely stay under the 10,000 character limit
-            if (currentChunk.length + entry.length > 9500) {
-                chunks.push(currentChunk);
-                currentChunk = entry;
+            const entryObj = { expected: allowedLanguage, text: text };
+            const prettyEntryLength = JSON.stringify(entryObj, null, 2).length;
+            
+            if (currentLength + prettyEntryLength + 2 > 9500 && currentObjects.length > 0) {
+                const chunkPrefix = chunks.length === 0 ? header : "";
+                chunks.push(chunkPrefix + "```\n" + JSON.stringify(currentObjects, null, 2) + "\n```");
+                currentObjects = [entryObj];
+                currentLength = prettyEntryLength + 15;
             } else {
-                currentChunk += entry;
+                currentObjects.push(entryObj);
+                currentLength += prettyEntryLength + 2; 
             }
         }
-        if (currentChunk.trim().length > 0) {
-            chunks.push(currentChunk);
+        
+        if (currentObjects.length > 0) {
+            const chunkPrefix = chunks.length === 0 ? header : "";
+            chunks.push(chunkPrefix + "```\n" + JSON.stringify(currentObjects, null, 2) + "\n```");
         }
 
         const conversation = await context.reddit.modMail.createModNotification({
