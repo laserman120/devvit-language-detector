@@ -101,12 +101,14 @@ Any reported false positives are added to this list.
 ---
 
 ## Changelog:
-- 0.00.27
+- 0.00.28
     - Added edit detection system which can be enabled in the setting.
         - When an item which was previously filtered or removed is edited and now detected as allowed, it will filter the item again to put it back into the queue.
         - This can only occur on posts which were automatically removed or filtered.
     - The app will no longer take action on moderator posts/comments.
         - This can be reenabled in the settings.
+    - Improved accuracy.
+
 - 0.00.26
     - Implemented setting to mute update notifications.
     - Implemented setting to automatically detect false positives (Opt-In only)
