@@ -1,5 +1,16 @@
 # Language Detector
-An easy-to-use moderation app to automatically report, filter, or remove posts and comments written in unsupported languages.
+An automated moderation app that detects the language of posts, comments, and user messages—allowing you to automatically **report, filter, or remove content written in foreign, non-English, or unsupported languages**.
+
+Whether you run an **English only subreddit**, a regional community, or a multilingual space that allows several specific languages, Language Detector helps enforce your community's language rules without manual moderation or external API keys.
+
+## Key Features & Use Cases
+- **Enforce Community Language Rules:** Automatically catch and action posts or comments written in disallowed or foreign languages (supports 60+ languages, including English, Spanish, French, German, Portuguese, Russian, Chinese, Japanese, Arabic, Hindi, and more).
+- **Flexible Moderation Actions:** Choose to **Report**, **Filter to the Modqueue**, or **Remove** messages that are not in your allowed languages—with separate settings for posts and comments.
+- **Automated Removal Notifications:** Optionally notify users via a stickied reply comment or Modmail when their post or comment is removed or filtered, including customizable wildcards (`{{LangName}}`, `{{type}}`, `{{PermaLink}}`).
+- **Non-Latin Script & Alphabet Detection:** Instantly identifies non-Latin alphabets and scripts (such as Cyrillic, Arabic, Hanzi/Kanji, Hangul, Devanagari, Greek, and Hebrew) even on short messages.
+- **Built for Real Reddit Conversations:** Includes configurable **custom whitelists**, **ignored word lists** (for foreign loanwords or gaming/community terms), **code-block exclusions**, and **edit monitoring** so legitimate posts aren't caught by mistake.
+
+---
 
 ## IMPORTANT
 **Foreword on Accuracy:** 
@@ -101,6 +112,12 @@ Any reported false positives are added to this list.
 ---
 
 ## Changelog:
+- 0.00.xx
+    - Rewrote the detection code to be roughly 45x faster.
+    - Detection accuracy has been improved for both High Accuracy and Aggressive Filtering
+    - Added seperate settings to enable/disable notifications on removal or filter for posts or comments.
+        - For example this allows the system to only create a notification for posts, but not comments.
+
 - 0.00.28
     - Added edit detection system which can be enabled in the setting.
         - When an item which was previously filtered or removed is edited and now detected as allowed, it will filter the item again to put it back into the queue.
@@ -117,45 +134,4 @@ Any reported false positives are added to this list.
     - Improved text pre-filtering to better exclude model numbers.
     - Improved detection of already removed content, preventing it from actioning already removed items.
 
-- 0.00.23
-    - Improved detection accuracy overall.
-    - Added setting for ignored words.
-    - Added setting to ignore code blocks and inline code.
-    - Added setting to increase minimum word count for a complete scan
-        - By default the system will only let tinyld perform a check if 2 or more words are present.
-        - To reduce the chance for false positives further this setting can be enabled.
-
-- 0.00.22
-    - Improved detection accuracy with a focus on short text.
-
-- 0.00.21
-    - Added {{PermaLink}} Wildcard to Link to the removed or filtered item.
-    - Wildcard {{LangName}} is now also supported in removal notifications.
-    - Further improved detection accuracy.
-
-- 0.00.20
-    - Adjusted detection thresholds
-    - Added Modmail as a notification method.
-    - Fixed incorrect wildcard for username.
-    - Added update notification system.
-    - Fixed missing languages in the detection system.
-
-- 0.00.17
-    - Switched from Franc-min to [tinyld](https://www.npmjs.com/package/tinyld?activeTab=readme).
-    - Added additional fallbacks and detection systems.
-    - Adjusted detection thresholds
-        - The changes increased the detection accuracy by ~20% with a massive reduction in false positives.
-
-- 0.00.13
-    - Added Custom Whitelist setting.
-    - Adjusted internal Whitelist.
-    - Improved Text cleanup before detection.
-
-- 0.00.11
-    - Updated Word Whitelist to include GIF and IMAGE
-
-- 0.00.10
-    - Public Release
-
-- 0.00.07
-    - Initial Release
+Older patch notes can be viewed on [GitHub](https://github.com/laserman120/devvit-language-detector/wiki/Changelog)

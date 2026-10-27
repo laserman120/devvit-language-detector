@@ -1,0 +1,74 @@
+================================================================================
+                             LANGUAGE DETECTOR SCRIPTS
+================================================================================
+
+NOTE ON NPM ARGUMENTS:
+When passing flags (like --mode) through "npm run", always include a standalone
+"--" first so npm forwards the arguments to the script instead of parsing them.
+
+--------------------------------------------------------------------------------
+1. BENCHMARK (scripts/benchmark.ts)
+--------------------------------------------------------------------------------
+Evaluates the detection system against the dataset in testData/cases.json.
+Outputs overall accuracy, execution speed, critical false positives, top 
+undefined reasons, and top missed words.
+
+Basic Usage:
+  npm run benchmark
+  (or: npm test)
+
+Arguments:
+  --mode=<lenient|strict>
+      Selects the base configuration profile to test. (Default: lenient)
+
+  --<CONFIG_KEY>=<VALUE>
+      Temporarily overrides any numeric property in DetectionConfig for a single
+      test run without modifying detectionHandler.ts.
+
+Examples:
+  npm run benchmark -- --mode=strict
+  npm run benchmark -- --TINYLD_REQUIRED_CONFIDENCE=0.45 --BASE_MIN_WORDS=3
+  npm run benchmark -- --mode=strict --FALLBACK_MIN_MATCHES_FOR_REJECTION=1
+
+--------------------------------------------------------------------------------
+2. CONFIG OPTIMIZER (scripts/optimizeConfig.ts)
+--------------------------------------------------------------------------------
+Uses two-phase optimization (Coordinate Ascent followed by Multi-Parameter 
+Random Perturbation) to find optimal threshold configurations in 
+detectionHandler.ts.
+
+- Automatically saves and resumes progress from: scripts/best-config-[mode].json
+- Can be stopped safely at any time using Ctrl+C.
+- To start a fresh optimization from the hardcoded defaults in 
+  detectionHandler.ts, delete the corresponding best-config-[mode].json file 
+  before running.
+
+Basic Usage:
+  npm run optimize
+
+Arguments:
+  --mode=<lenient|strict>
+      Selects which configuration profile to optimize.
+      - lenient: Maximizes accuracy while strictly enforcing Critical <= max.
+      - strict:  Maximizes weighted score: Passed - (Critical * 10) - (Slipped * 2).
+      (Default: lenient)
+
+  --max-critical=<NUMBER>
+      Sets the hard ceiling for allowed Critical fails (false positives). Any
+      parameter change exceeding this limit is immediately discarded.
+      (Default: 0 for lenient, 25 for strict)
+
+Examples:
+  npm run optimize
+  npm run optimize -- --mode=strict
+  npm run optimize -- --mode=strict --max-critical=10
+  npm run optimize -- --mode=lenient --max-critical=2
+
+--------------------------------------------------------------------------------
+3. FORMAT WHITELIST (scripts/formatWhitelist.ts)
+--------------------------------------------------------------------------------
+Deduplicates, lowercases, and alphabetically sorts all language arrays inside
+src/helpers/word-whitelist.ts.
+
+Usage:
+  npm run format:whitelist

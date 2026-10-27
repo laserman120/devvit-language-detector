@@ -10,7 +10,9 @@
     "login": "devvit login",
     "launch": "devvit publish",
     "type-check": "tsc --build",
-    "test": "npx tsx tests/run.ts"
+    "benchmark": "npx tsx scripts/benchmark.ts",
+    "format:whitelist": "npx tsx scripts/formatWhitelist.ts",
+    "optimize": "npx tsx scripts/optimizeConfig.ts"
   },
   "dependencies": {
     "@devvit/public-api": "^0.14.4",

@@ -5,10 +5,18 @@ export async function sendRemovalNotification(context: TriggerContext, item: Pos
     let notifyAuthor;
     let rawMessage;
     if(type === "filter") {
-        notifyAuthor = await context.settings.get<boolean>('NOTIFY_AUTHOR_FILTER');
+        if(item.id.startsWith("t3_")) {
+            notifyAuthor = await context.settings.get<boolean>('NOTIFY_AUTHOR_FILTER_POST');
+        } else {
+            notifyAuthor = await context.settings.get<boolean>('NOTIFY_AUTHOR_FILTER_COMMENT');
+        }
         rawMessage = await context.settings.get<string>('FILTER_MESSAGE') ?? '';
     } else if(type === "removal") {
-        notifyAuthor = await context.settings.get<boolean>('NOTIFY_AUTHOR_REMOVAL');
+        if(item.id.startsWith("t3_")) {
+            notifyAuthor = await context.settings.get<boolean>('NOTIFY_AUTHOR_REMOVAL_POST');
+        } else {
+            notifyAuthor = await context.settings.get<boolean>('NOTIFY_AUTHOR_REMOVAL_COMMENT');
+        }
         rawMessage = await context.settings.get<string>('REMOVAL_MESSAGE') ?? '';
     }
 
